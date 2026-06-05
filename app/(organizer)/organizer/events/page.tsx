@@ -1,7 +1,7 @@
-export default function OrganizerEventsPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center p-8">
-      <h1 className="text-2xl font-semibold">Organizer: Events</h1>
-    </main>
-  )
+import { resolveActiveTenantId } from '@/lib/auth/current-tenant'
+import { EventsListClient } from '@/components/organizer/events-list-client'
+
+export default async function OrganizerEventsPage() {
+  const activeTenantId = await resolveActiveTenantId()
+  return <EventsListClient activeTenantId={activeTenantId!} />
 }

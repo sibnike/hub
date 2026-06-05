@@ -1,13 +1,11 @@
-type PublicEventPageProps = {
+import { redirect } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
+
+type PageProps = {
   params: { slug: string }
 }
 
-export default function PublicEventPage({ params }: PublicEventPageProps) {
-  const { slug } = params
-
-  return (
-    <main className="flex min-h-screen items-center justify-center p-8">
-      <h1 className="text-2xl font-semibold">Public: {slug}</h1>
-    </main>
-  )
+export default function EventRootPage({ params }: PageProps) {
+  redirect(`/e/${params.slug}/catalog`)
 }

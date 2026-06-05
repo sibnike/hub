@@ -17,7 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={cn('font-sans', inter.variable)}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased min-h-screen flex flex-col">
+        {children}
+      </body>
     </html>
   )
 }
