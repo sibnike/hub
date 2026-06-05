@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { mergeAuthCookieOptions } from '@/lib/supabase/auth-cookie'
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -14,7 +15,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, mergeAuthCookieOptions(options))
             )
           } catch {
             // Server Component — cookies read-only

@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
+import { mergeAuthCookieOptions } from '@/lib/supabase/auth-cookie'
 
 function createServiceClient() {
   return createClient(
@@ -35,7 +36,7 @@ async function refreshAuth(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, mergeAuthCookieOptions(options))
           )
         },
       },
