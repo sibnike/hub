@@ -40,6 +40,21 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  const { data: recent, error: recentError } = await supabase
+    .schema('hub')
+    .from('event_stands')
+    .select('id, created_at')
+    .eq('participation_id', stand.participation_id)
+    .eq('event_id', event.id)
+    .gte('created_at', new Date(Date.now() - 2000).toISOString())
+
+  if (recentError) {
+    return NextResponse.json({ error: recentError.message }, { status: 500 })
+  }
+  if (recent && recent.length > 2) {
+    return NextResponse.json({ error: 'Слишком частые дубликаты. Подождите.' }, { status: 429 })
+  }
+
   const { data, error } = await supabase
     .schema('hub')
     .from('event_stands')

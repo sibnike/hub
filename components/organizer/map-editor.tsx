@@ -87,6 +87,7 @@ function DraggableStand({
     null
   )
   const [localSize, setLocalSize] = useState<{ width: number; height: number } | null>(null)
+  const [isResizing, setIsResizing] = useState(false)
 
   const width = localSize?.width ?? stand.map_width
   const height = localSize?.height ?? stand.map_height
@@ -106,24 +107,24 @@ function DraggableStand({
     const container = (e.currentTarget as HTMLElement).closest('[data-map-canvas]') as HTMLElement
     if (!container) return
 
+    const mapX = stand.map_x
+    const mapY = stand.map_y
+
     resizeRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       startW: stand.map_width,
       startH: stand.map_height,
     }
+    setIsResizing(true)
 
     function onMove(ev: MouseEvent) {
       if (!resizeRef.current) return
       const rect = container.getBoundingClientRect()
       const dw = ((ev.clientX - resizeRef.current.startX) / rect.width) * 100
       const dh = ((ev.clientY - resizeRef.current.startY) / rect.height) * 100
-      let newW = Math.max(2, resizeRef.current.startW + dw)
-      let newH = Math.max(2, resizeRef.current.startH + dh)
-      if (snapEnabled) {
-        newW = snap(newW, gridSize)
-        newH = snap(newH, gridSize)
-      }
+      const newW = Math.max(2, Math.min(100 - mapX, resizeRef.current.startW + dw))
+      const newH = Math.max(2, Math.min(100 - mapY, resizeRef.current.startH + dh))
       setLocalSize({ width: newW, height: newH })
     }
 
@@ -132,14 +133,15 @@ function DraggableStand({
       const rect = container.getBoundingClientRect()
       const dw = ((ev.clientX - resizeRef.current.startX) / rect.width) * 100
       const dh = ((ev.clientY - resizeRef.current.startY) / rect.height) * 100
-      let newW = Math.max(2, resizeRef.current.startW + dw)
-      let newH = Math.max(2, resizeRef.current.startH + dh)
+      let newW = Math.max(2, Math.min(100 - mapX, resizeRef.current.startW + dw))
+      let newH = Math.max(2, Math.min(100 - mapY, resizeRef.current.startH + dh))
       if (snapEnabled) {
         newW = snap(newW, gridSize)
         newH = snap(newH, gridSize)
       }
       resizeRef.current = null
       setLocalSize(null)
+      setIsResizing(false)
       onResizeEnd(stand.id, newW, newH)
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
@@ -156,6 +158,7 @@ function DraggableStand({
       className={cn(
         'absolute flex flex-col items-center justify-center rounded border-2 border-primary/60 bg-primary/15 text-center text-xs shadow-sm',
         isDragging && 'opacity-80 ring-2 ring-primary',
+        isResizing && 'ring-2 ring-sky-500 border-sky-500',
         selected && 'ring-2 ring-amber-500 border-amber-500'
       )}
       onContextMenu={(e) => {
@@ -188,6 +191,11 @@ function DraggableStand({
       <span className="pointer-events-none px-1 text-[10px] text-muted-foreground line-clamp-2">
         {standLabel(stand)}
       </span>
+      {isResizing && localSize ? (
+        <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-1.5 py-0.5 text-[10px] text-background shadow">
+          {localSize.width.toFixed(1)}% × {localSize.height.toFixed(1)}%
+        </span>
+      ) : null}
       <div
         role="presentation"
         onMouseDown={handleResizeStart}
@@ -240,8 +248,10 @@ export function MapEditor({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [moveStandId, setMoveStandId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const lastDuplicateTsRef = useRef(0)
+  const duplicatingRef = useRef(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -279,8 +289,8 @@ export function MapEditor({
     })
   }, [stands, activeMap, maps])
 
-  const showToast = useCallback((message: string) => {
-    setToast(message)
+  const showToast = useCallback((message: string, variant: 'success' | 'error' = 'error') => {
+    setToast({ message, variant })
     window.setTimeout(() => setToast(null), 4000)
   }, [])
 
@@ -289,6 +299,13 @@ export function MapEditor({
       standId: string,
       position: { map_x: number; map_y: number; map_width: number; map_height: number }
     ) => {
+      let rollbackStand: MapStandRow | undefined
+
+      setStands((prev) => {
+        rollbackStand = prev.find((s) => s.id === standId)
+        return prev.map((s) => (s.id === standId ? { ...s, ...position } : s))
+      })
+
       try {
         const res = await fetch(
           `/api/organizer/events/${eventSlug}/stands/${standId}/position`,
@@ -299,6 +316,11 @@ export function MapEditor({
           }
         )
         if (res.status === 401) {
+          if (rollbackStand) {
+            setStands((prev) =>
+              prev.map((s) => (s.id === standId ? rollbackStand! : s))
+            )
+          }
           showToast('Сессия истекла. Войдите снова, чтобы сохранить изменения.')
           return
         }
@@ -306,10 +328,12 @@ export function MapEditor({
           const json = (await res.json()) as { error?: string }
           throw new Error(json.error ?? 'Ошибка сохранения')
         }
-        setStands((prev) =>
-          prev.map((s) => (s.id === standId ? { ...s, ...position } : s))
-        )
       } catch (e) {
+        if (rollbackStand) {
+          setStands((prev) =>
+            prev.map((s) => (s.id === standId ? rollbackStand! : s))
+          )
+        }
         showToast(e instanceof Error ? e.message : 'Ошибка сохранения')
       }
     },
@@ -369,11 +393,11 @@ export function MapEditor({
       if (!stand || !containerRef.current) return
 
       const containerRect = containerRef.current.getBoundingClientRect()
-      const currentPxX = (stand.map_x / 100) * containerRect.width
-      const currentPxY = (stand.map_y / 100) * containerRect.height
+      const deltaXPct = (dragEvent.delta.x / containerRect.width) * 100
+      const deltaYPct = (dragEvent.delta.y / containerRect.height) * 100
 
-      let map_x = ((dragEvent.delta.x + currentPxX) / containerRect.width) * 100
-      let map_y = ((dragEvent.delta.y + currentPxY) / containerRect.height) * 100
+      let map_x = stand.map_x + deltaXPct
+      let map_y = stand.map_y + deltaYPct
 
       if (snapEnabled) {
         map_x = snap(map_x, gridSize)
@@ -398,9 +422,14 @@ export function MapEditor({
     (standId: string, map_width: number, map_height: number) => {
       const stand = stands.find((s) => s.id === standId)
       if (!stand) return
-      const map_x = Math.min(stand.map_x, 100 - map_width)
-      const map_y = Math.min(stand.map_y, 100 - map_height)
-      void savePosition(standId, { map_x, map_y, map_width, map_height })
+      const clampedW = Math.max(2, Math.min(100 - stand.map_x, map_width))
+      const clampedH = Math.max(2, Math.min(100 - stand.map_y, map_height))
+      void savePosition(standId, {
+        map_x: stand.map_x,
+        map_y: stand.map_y,
+        map_width: clampedW,
+        map_height: clampedH,
+      })
     },
     [stands, savePosition]
   )
@@ -431,37 +460,58 @@ export function MapEditor({
     [stands, selectedIds, batchSave]
   )
 
+  const duplicateStand = useCallback(
+    async (standId: string) => {
+      const source = stands.find((s) => s.id === standId)
+      if (!source) return
+
+      const res = await fetch(
+        `/api/organizer/events/${eventSlug}/stands/${standId}/duplicate`,
+        { method: 'POST' }
+      )
+      const json = (await res.json()) as { data?: MapStandRow; error?: string }
+      if (!res.ok || !json.data) {
+        showToast(json.error ?? 'Ошибка дублирования')
+        return
+      }
+      const row = json.data
+      setStands((prev) => [
+        ...prev,
+        {
+          ...row,
+          tenant_slug: source.tenant_slug ?? null,
+          cache: source.cache ?? null,
+        } as MapStandRow,
+      ])
+      setSelectedIds(new Set([row.id]))
+      showToast('Стенд скопирован', 'success')
+    },
+    [eventSlug, showToast, stands]
+  )
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
         e.preventDefault()
-        const standId = Array.from(selectedIds)[0] ?? standsForMap[0]?.id
+        if (selectedIds.size === 0) return
+
+        const now = Date.now()
+        if (now - lastDuplicateTsRef.current < 500) return
+        if (duplicatingRef.current) return
+
+        const standId = Array.from(selectedIds)[0]
         if (!standId) return
-        void (async () => {
-          const res = await fetch(
-            `/api/organizer/events/${eventSlug}/stands/${standId}/duplicate`,
-            { method: 'POST' }
-          )
-          const json = (await res.json()) as { data?: MapStandRow; error?: string }
-          if (!res.ok || !json.data) {
-            showToast(json.error ?? 'Ошибка дублирования')
-            return
-          }
-          const row = json.data
-          setStands((prev) => [
-            ...prev,
-            {
-              ...row,
-              tenant_slug: stands.find((s) => s.id === standId)?.tenant_slug ?? null,
-              cache: stands.find((s) => s.id === standId)?.cache ?? null,
-            } as MapStandRow,
-          ])
-        })()
+
+        lastDuplicateTsRef.current = now
+        duplicatingRef.current = true
+        void duplicateStand(standId).finally(() => {
+          duplicatingRef.current = false
+        })
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectedIds, standsForMap, eventSlug, showToast, stands])
+  }, [selectedIds, duplicateStand])
 
   async function uploadMap() {
     if (!svgInput.trim()) return
@@ -937,8 +987,15 @@ export function MapEditor({
       ) : null}
 
       {toast ? (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border bg-destructive px-4 py-2 text-sm text-destructive-foreground shadow-lg">
-          {toast}
+        <div
+          className={cn(
+            'fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border px-4 py-2 text-sm shadow-lg',
+            toast.variant === 'success'
+              ? 'border-emerald-600/30 bg-emerald-600 text-white'
+              : 'bg-destructive text-destructive-foreground'
+          )}
+        >
+          {toast.message}
         </div>
       ) : null}
     </div>
