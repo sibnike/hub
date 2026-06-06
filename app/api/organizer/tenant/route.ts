@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import {
-  assertTenantAdmin,
-  getCurrentUserTenants,
+  assertTenantAdminOrPlatform,
+  getAccessibleTenants,
   resolveActiveTenantId,
   TENANT_COOKIE,
 } from '@/lib/auth/current-tenant'
 
 export async function GET() {
-  const tenants = await getCurrentUserTenants()
-  if (!tenants) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const tenants = await getAccessibleTenants()
 
   const activeTenantId = await resolveActiveTenantId()
   return NextResponse.json({ tenants, activeTenantId })
@@ -21,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'tenant_id required' }, { status: 400 })
   }
 
-  if (!(await assertTenantAdmin(body.tenant_id))) {
+  if (!(await assertTenantAdminOrPlatform(body.tenant_id))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

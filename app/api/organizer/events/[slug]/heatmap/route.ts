@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { assertTenantAdmin } from '@/lib/auth/current-tenant'
+import { assertTenantAdminOrPlatform } from '@/lib/auth/current-tenant'
 import type { HeatmapMetric, HeatmapResponse, HeatmapStandRow } from '@/types/heatmap'
 import type { HubEventRow } from '@/types/hub-event'
 import type { TrackType } from '@/types/analytics'
@@ -29,7 +29,7 @@ async function loadEventBySlug(slug: string) {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const event = await loadEventBySlug(params.slug)
-  if (!event || !(await assertTenantAdmin(event.organizer_tenant_id))) {
+  if (!event || !(await assertTenantAdminOrPlatform(event.organizer_tenant_id))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

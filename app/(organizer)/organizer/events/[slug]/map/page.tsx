@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { MapEditor } from '@/components/organizer/map-editor'
-import { assertTenantAdmin } from '@/lib/auth/current-tenant'
+import { assertTenantAdminOrPlatform } from '@/lib/auth/current-tenant'
 import { getEventMaps, getMapStands } from '@/lib/hub/get-map-data'
 import { createClient } from '@/lib/supabase/server'
 import type { HubEventRow } from '@/types/hub-event'
@@ -20,7 +20,7 @@ export default async function OrganizerMapPage({ params }: PageProps) {
     .eq('slug', params.slug)
     .maybeSingle()
 
-  if (!event || !(await assertTenantAdmin(event.organizer_tenant_id))) {
+  if (!event || !(await assertTenantAdminOrPlatform(event.organizer_tenant_id))) {
     redirect('/organizer/events')
   }
 

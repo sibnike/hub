@@ -6,6 +6,22 @@ export const TENANT_COOKIE = 'hub_active_tenant_id'
 
 type TenantRow = { id: string; slug: string; name: string }
 
+export async function isPlatformAdmin(): Promise<boolean> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const { data } = await supabase
+    .from('platform_admins')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  return !!data
+}
+
 export async function getCurrentUserTenants(): Promise<OrganizerTenant[] | null> {
   const supabase = await createClient()
   const {
@@ -30,9 +46,34 @@ export async function getCurrentUserTenants(): Promise<OrganizerTenant[] | null>
   )
 }
 
+export async function getAccessibleTenants(): Promise<OrganizerTenant[]> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return []
+
+  if (await isPlatformAdmin()) {
+    const { data } = await supabase
+      .from('tenants')
+      .select('id, slug, name')
+      .order('name')
+    return data ?? []
+  }
+
+  return (await getCurrentUserTenants()) ?? []
+}
+
 export async function assertTenantAdmin(tenantId: string): Promise<boolean> {
   const access = await requireTenantAdmin(tenantId)
   return access.ok
+}
+
+export async function assertTenantAdminOrPlatform(
+  tenantId: string
+): Promise<boolean> {
+  if (await isPlatformAdmin()) return true
+  return assertTenantAdmin(tenantId)
 }
 
 export type TenantAccessResult =
@@ -58,11 +99,18 @@ export async function requireTenantAdmin(
   return data ? { ok: true } : { ok: false, status: 403 }
 }
 
+export async function requireTenantAdminOrPlatform(
+  tenantId: string
+): Promise<TenantAccessResult> {
+  if (await isPlatformAdmin()) return { ok: true }
+  return requireTenantAdmin(tenantId)
+}
+
 export async function resolveActiveTenantId(
   preferredTenantId?: string | null
 ): Promise<string | null> {
-  const tenants = await getCurrentUserTenants()
-  if (!tenants || tenants.length === 0) return null
+  const tenants = await getAccessibleTenants()
+  if (tenants.length === 0) return null
 
   if (preferredTenantId && tenants.some((t) => t.id === preferredTenantId)) {
     return preferredTenantId

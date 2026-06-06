@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireTenantAdmin } from '@/lib/auth/current-tenant'
+import { requireTenantAdminOrPlatform } from '@/lib/auth/current-tenant'
 import type { HubEventRow } from '@/types/hub-event'
 
 type RouteParams = { params: { slug: string; standId: string } }
@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const access = await requireTenantAdmin(event.organizer_tenant_id)
+  const access = await requireTenantAdminOrPlatform(event.organizer_tenant_id)
   if (!access.ok) {
     return NextResponse.json(
       { error: access.status === 401 ? 'Unauthorized' : 'Forbidden' },

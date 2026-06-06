@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { assertTenantAdmin } from '@/lib/auth/current-tenant'
+import { assertTenantAdminOrPlatform } from '@/lib/auth/current-tenant'
 import { generateAccessCode, hashAccessCode } from '@/lib/access-code'
 import { sendInvitation } from '@/lib/email/send-invitation'
 import { ensurePlaceholderMaps } from '@/lib/map/utils'
@@ -30,7 +30,7 @@ async function loadEventBySlug(slug: string) {
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   const event = await loadEventBySlug(params.slug)
-  if (!event || !(await assertTenantAdmin(event.organizer_tenant_id))) {
+  if (!event || !(await assertTenantAdminOrPlatform(event.organizer_tenant_id))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -54,7 +54,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const event = await loadEventBySlug(params.slug)
-  if (!event || !(await assertTenantAdmin(event.organizer_tenant_id))) {
+  if (!event || !(await assertTenantAdminOrPlatform(event.organizer_tenant_id))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

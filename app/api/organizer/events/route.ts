@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { assertTenantAdmin, resolveActiveTenantId } from '@/lib/auth/current-tenant'
+import {
+  assertTenantAdminOrPlatform,
+  resolveActiveTenantId,
+} from '@/lib/auth/current-tenant'
 import { generateSalt } from '@/lib/access-code'
 import { isValidEventSlug } from '@/lib/hub/slug-from-title'
 import type { EventLocation, I18nMap } from '@/types/hub-event'
@@ -15,7 +18,7 @@ export async function GET(request: NextRequest) {
   const tenantId = await resolveActiveTenantId(
     request.nextUrl.searchParams.get('organizer_tenant_id')
   )
-  if (!tenantId || !(await assertTenantAdmin(tenantId))) {
+  if (!tenantId || !(await assertTenantAdminOrPlatform(tenantId))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -61,7 +64,7 @@ export async function POST(request: NextRequest) {
   }
 
   const organizerTenantId = body.organizer_tenant_id
-  if (!organizerTenantId || !(await assertTenantAdmin(organizerTenantId))) {
+  if (!organizerTenantId || !(await assertTenantAdminOrPlatform(organizerTenantId))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
