@@ -7,7 +7,7 @@ export type TrackType =
   | 'save'
   | 'form_submit'
 
-export type TrackSource = 'catalog' | 'map' | 'qr' | 'direct' | 'search'
+export type TrackSource = 'catalog' | 'map' | 'qr' | 'direct' | 'search' | 'profile'
 
 export type TrackRow = {
   type: TrackType

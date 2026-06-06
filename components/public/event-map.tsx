@@ -36,6 +36,7 @@ type EventMapProps = {
   stands: MapStandRow[]
   categories: IndustryCategory[]
   unplacedCount: number
+  highlightStandId?: string | null
 }
 
 function isPlaced(stand: MapStandRow): boolean {
@@ -60,6 +61,7 @@ export function EventMap({
   stands,
   categories,
   unplacedCount,
+  highlightStandId = null,
 }: EventMapProps) {
   const { locale } = useEventLocale()
   const { embed } = useEmbed()
@@ -68,6 +70,7 @@ export function EventMap({
 
   const [activeMap, setActiveMap] = useState(maps[0] ?? null)
   const [selectedStand, setSelectedStand] = useState<MapStandRow | null>(null)
+  const [highlightApplied, setHighlightApplied] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [zoom, setZoom] = useState(1)
@@ -131,6 +134,18 @@ export function EventMap({
   }, [search, selectedCategories, activeMap, stands, matchedStandIds, maps])
 
   const showMapTabs = maps.length > 1
+
+  useEffect(() => {
+    if (!highlightStandId || highlightApplied || !maps.length) return
+
+    const stand = stands.find((s) => s.id === highlightStandId)
+    if (!stand) return
+
+    const targetMap = maps.find((m) => standMatchesMap(stand, m))
+    if (targetMap) setActiveMap(targetMap)
+    setSelectedStand(stand)
+    setHighlightApplied(true)
+  }, [highlightStandId, highlightApplied, maps, stands])
 
   const filterPanel = (
     <div className="space-y-3">

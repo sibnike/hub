@@ -80,7 +80,7 @@ export async function getCompanyInEvent(
     supabase
       .schema('hub')
       .from('event_stands')
-      .select('stand_number, pavilion, floor')
+      .select('id, stand_number, pavilion, floor')
       .eq('event_id', event.id)
       .eq('tenant_id', tenant.id)
       .limit(1)
@@ -96,6 +96,7 @@ export async function getCompanyInEvent(
     cache: normalizeCache(cacheRow as Record<string, unknown>),
     stand: standRow
       ? {
+          id: typeof standRow.id === 'string' ? standRow.id : undefined,
           stand_number:
             typeof standRow.stand_number === 'string' ? standRow.stand_number : null,
           pavilion: typeof standRow.pavilion === 'string' ? standRow.pavilion : null,

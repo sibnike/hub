@@ -13,7 +13,7 @@ const VALID_TYPES: TrackType[] = [
   'form_submit',
 ]
 
-const VALID_SOURCES: TrackSource[] = ['catalog', 'map', 'qr', 'direct', 'search']
+const VALID_SOURCES: TrackSource[] = ['catalog', 'map', 'qr', 'direct', 'search', 'profile']
 
 const DEDUP_VIEW_TYPES: TrackType[] = ['profile_view', 'catalog_view', 'map_view']
 

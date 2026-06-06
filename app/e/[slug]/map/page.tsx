@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic'
 
 type PageProps = {
   params: { slug: string }
+  searchParams: { stand?: string }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function MapPage({ params }: PageProps) {
+export default async function MapPage({ params, searchParams }: PageProps) {
   const event = await getPublishedEvent(params.slug)
   if (!event) notFound()
 
@@ -44,6 +45,7 @@ export default async function MapPage({ params }: PageProps) {
       stands={stands}
       categories={categories}
       unplacedCount={countUnplacedStands(stands)}
+      highlightStandId={searchParams.stand ?? null}
     />
   )
 }

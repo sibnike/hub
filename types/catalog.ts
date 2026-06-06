@@ -2,6 +2,7 @@ import type { CompanyCacheRow } from '@/types/company-cache'
 import type { I18nMap } from '@/types/hub-event'
 
 export type CatalogStand = {
+  id?: string
   stand_number: string | null
   pavilion: string | null
   floor: number | null
