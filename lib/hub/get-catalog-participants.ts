@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { joinTenants } from '@/lib/hub/join-tenants'
 import type { CompanyCacheRow } from '@/types/company-cache'
 import type { CatalogParticipant } from '@/types/catalog'
 
@@ -32,6 +33,23 @@ function normalizeCache(row: Record<string, unknown>): CompanyCacheRow {
   }
 }
 
+function emptyCache(tenantId: string, name: string | null): CompanyCacheRow {
+  return {
+    tenant_id: tenantId,
+    name,
+    logo_url: null,
+    short_description: {},
+    categories: [],
+    tags: [],
+    country: null,
+    website: null,
+    social_links: {},
+    contact_persons: [],
+    vitrina_page_slug: null,
+    synced_at: null,
+  }
+}
+
 export async function getCatalogParticipants(
   eventId: string
 ): Promise<CatalogParticipant[]> {
@@ -52,15 +70,16 @@ export async function getCatalogParticipants(
 
   if (!participations?.length) return []
 
+  const withTenants = await joinTenants(participations)
   const tenantIds = Array.from(
     new Set(
-      participations
+      withTenants
         .map((p) => p.tenant_id)
         .filter((id): id is string => typeof id === 'string' && id.length > 0)
     )
   )
 
-  const [cacheRes, standsRes, tenantsRes] = await Promise.all([
+  const [cacheRes, standsRes] = await Promise.all([
     supabase.schema('hub').from('company_cache').select('*').in('tenant_id', tenantIds),
     supabase
       .schema('hub')
@@ -68,7 +87,6 @@ export async function getCatalogParticipants(
       .select('tenant_id, stand_number, pavilion, floor')
       .eq('event_id', eventId)
       .in('tenant_id', tenantIds),
-    supabase.from('tenants').select('id, slug').in('id', tenantIds),
   ])
 
   const cacheByTenant = new Map(
@@ -93,17 +111,15 @@ export async function getCatalogParticipants(
     }
   }
 
-  const slugByTenant = new Map(
-    (tenantsRes.data ?? []).map((t) => [String(t.id), String(t.slug)])
-  )
-
   const result: CatalogParticipant[] = []
 
-  for (const part of participations) {
+  for (const part of withTenants) {
     const tenantId = String(part.tenant_id)
-    const cache = cacheByTenant.get(tenantId)
-    const tenantSlug = slugByTenant.get(tenantId)
-    if (!cache || !tenantSlug) continue
+    const tenantSlug = part.tenant?.slug
+    if (!tenantSlug) continue
+
+    const cache =
+      cacheByTenant.get(tenantId) ?? emptyCache(tenantId, part.tenant?.name ?? null)
 
     result.push({
       id: String(part.id),

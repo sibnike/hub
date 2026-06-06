@@ -3,8 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { assertTenantAdminOrPlatform } from '@/lib/auth/current-tenant'
 import { generateAccessCode, hashAccessCode } from '@/lib/access-code'
 import { sendInvitation } from '@/lib/email/send-invitation'
+import { joinTenants } from '@/lib/hub/join-tenants'
 import { ensurePlaceholderMaps } from '@/lib/map/utils'
 import type { HubEventRow } from '@/types/hub-event'
+import type { ParticipationRow } from '@/types/participation'
 
 type RouteParams = { params: { slug: string } }
 
@@ -13,6 +15,14 @@ type ParticipantInput = {
   stand_number?: string
   pavilion?: string
   floor?: number
+}
+
+type StandRow = {
+  id: string
+  participation_id: string
+  stand_number: string | null
+  pavilion: string | null
+  floor: number | null
 }
 
 async function loadEventBySlug(slug: string) {
@@ -35,20 +45,62 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 
   const supabase = await createClient()
-  const { data, error } = await supabase
+  const { data: participations, error: partError } = await supabase
     .schema('hub')
     .from('event_participations')
-    .select(
-      `
-      *,
-      tenant:tenant_id(id, name, slug),
-      stand:event_stands(id, stand_number, pavilion, floor)
-    `
-    )
+    .select('*')
     .eq('event_id', event.id)
     .order('created_at', { ascending: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (partError) {
+    return NextResponse.json({ error: partError.message }, { status: 500 })
+  }
+
+  const rows = participations ?? []
+  if (!rows.length) {
+    return NextResponse.json({ data: [], event })
+  }
+
+  const participationIds = rows.map((p) => p.id)
+  const { data: stands, error: standsError } = await supabase
+    .schema('hub')
+    .from('event_stands')
+    .select('id, participation_id, stand_number, pavilion, floor')
+    .in('participation_id', participationIds)
+
+  if (standsError) {
+    return NextResponse.json({ error: standsError.message }, { status: 500 })
+  }
+
+  const withTenants = await joinTenants(rows)
+  const standsByParticipation = new Map<string, StandRow[]>()
+  for (const stand of stands ?? []) {
+    const pid = String(stand.participation_id)
+    const list = standsByParticipation.get(pid) ?? []
+    list.push(stand as StandRow)
+    standsByParticipation.set(pid, list)
+  }
+
+  const data: ParticipationRow[] = withTenants.map((p) => {
+    const participationStands = standsByParticipation.get(p.id) ?? []
+    const mappedStands = participationStands.map((s) => ({
+      id: s.id,
+      stand_number: s.stand_number ?? '',
+      pavilion: s.pavilion ?? '',
+      floor: s.floor ?? 1,
+    }))
+
+    return {
+      ...p,
+      stand:
+        mappedStands.length > 0
+          ? mappedStands.length === 1
+            ? mappedStands[0]
+            : mappedStands
+          : null,
+    }
+  })
+
   return NextResponse.json({ data, event })
 }
 
