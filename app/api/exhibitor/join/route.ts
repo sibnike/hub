@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { assertTenantAdmin } from '@/lib/auth/current-tenant'
 import { hashAccessCode } from '@/lib/access-code'
 
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: event } = await supabase
     .schema('hub')
@@ -45,6 +45,10 @@ export async function POST(request: NextRequest) {
 
   if (!participation) {
     return NextResponse.json({ error: 'Invalid access code' }, { status: 400 })
+  }
+
+  if (participation.tenant_id && participation.tenant_id !== tenant_id) {
+    return NextResponse.json({ error: 'Access code already used' }, { status: 400 })
   }
 
   const { error: updateError } = await supabase
