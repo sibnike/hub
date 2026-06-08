@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { EventThemeShell } from '@/components/design/event-theme-shell'
 import { InviteRequired } from '@/components/public/invite-required'
 import { getPublishedEvent } from '@/lib/hub/get-published-event'
 import { getI18nText } from '@/lib/i18n/get-text'
@@ -26,5 +27,9 @@ export default async function MapPage({ params }: PageProps) {
   const event = await getPublishedEvent(params.slug)
   if (!event) notFound()
 
-  return <InviteRequired slug={event.slug} />
+  return (
+    <EventThemeShell settings={event.settings}>
+      <InviteRequired slug={event.slug} event={event} />
+    </EventThemeShell>
+  )
 }

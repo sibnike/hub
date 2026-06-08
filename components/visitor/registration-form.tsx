@@ -1,9 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { motion } from 'framer-motion'
+import { MailIcon, StarIcon } from '@/components/icons'
+import { GuideButton } from '@/components/design/guide-buttons'
+import { fadeUp } from '@/lib/design/animations'
+import { getEventLogoUrl, parseEventSettings } from '@/lib/hub/event-settings'
+import { getI18nText } from '@/lib/i18n/get-text'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -13,11 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getI18nText } from '@/lib/i18n/get-text'
 import { COUNTRY_OPTIONS, SUPPORTED_VISITOR_LANGUAGES } from '@/lib/visitor/locales'
 import type { HubEventRow } from '@/types/hub-event'
 import type { EventInvitationRow } from '@/types/visitor'
-import { Badge } from '@/components/ui/badge'
 
 type RegistrationFormProps = {
   event: HubEventRow
@@ -25,8 +28,19 @@ type RegistrationFormProps = {
   inviteToken: string
 }
 
+function parsePrivileges(text: string | null): string[] {
+  if (!text) return []
+  return text
+    .split(/\n|•|·/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
 export function RegistrationForm({ event, invitation, inviteToken }: RegistrationFormProps) {
   const router = useRouter()
+  const settings = parseEventSettings(event.settings)
+  const logoUrl = getEventLogoUrl(settings)
+
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -44,6 +58,8 @@ export function RegistrationForm({ event, invitation, inviteToken }: Registratio
   const tierDesc = invitation.tier?.description
     ? getI18nText(invitation.tier.description, 'ru')
     : null
+  const tierColor = invitation.tier?.color ?? 'var(--tier-default)'
+  const privileges = parsePrivileges(tierDesc)
 
   async function submit() {
     if (!email.trim() || !name.trim()) {
@@ -103,107 +119,169 @@ export function RegistrationForm({ event, invitation, inviteToken }: Registratio
 
   if (checkEmail) {
     return (
-      <div className="container max-w-md py-12">
-        <Card>
-          <CardContent className="pt-6 space-y-4 text-center">
-            <h1 className="text-xl font-semibold">Проверьте почту</h1>
-            <p className="text-sm text-muted-foreground">
-              Мы отправили ссылку для подтверждения на <strong>{email}</strong>
-            </p>
-            <Button variant="outline" onClick={() => void resendEmail()} disabled={busy}>
-              Отправить заново
-            </Button>
-            {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-md px-4 py-16">
+        <motion.div
+          {...fadeUp}
+          className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-[var(--shadow-md)]"
+        >
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface2)]">
+            <MailIcon size={36} className="text-[var(--accent)]" />
+          </div>
+          <h1 className="mt-6 font-heading text-2xl font-semibold text-[var(--brand)]">
+            Проверьте почту
+          </h1>
+          <p className="mt-3 text-sm text-[var(--muted)]">
+            Мы отправили ссылку для подтверждения на{' '}
+            <strong className="text-[var(--text)]">{email}</strong>
+          </p>
+          <GuideButton
+            variant="secondary"
+            className="mt-6"
+            onClick={() => void resendEmail()}
+            disabled={busy}
+          >
+            Отправить заново
+          </GuideButton>
+          {message ? <p className="mt-4 text-sm text-[var(--muted)]">{message}</p> : null}
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="container max-w-lg py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Регистрация — {eventTitle}</CardTitle>
-          {tierName ? (
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <Badge
-                style={{
-                  backgroundColor: invitation.tier?.color ?? 'var(--event-accent, #4f46e5)',
-                  color: '#fff',
-                }}
-              >
-                {tierName}
-              </Badge>
-              {tierDesc ? (
-                <p className="text-sm text-muted-foreground">{tierDesc}</p>
-              ) : null}
+    <div>
+      {/* Hero */}
+      <section
+        className="relative flex min-h-[40vh] items-end px-4 pb-10 pt-16 md:px-8"
+        style={{
+          background: 'var(--hero-bg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-black/25" aria-hidden />
+        <motion.div {...fadeUp} className="relative z-10 mx-auto w-full max-w-4xl">
+          <div className="flex items-center gap-4">
+            {logoUrl ? (
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-white/10">
+                <Image src={logoUrl} alt="" fill className="object-cover" unoptimized />
+              </div>
+            ) : null}
+            <div className="text-white">
+              <p className="text-sm text-white/80">Регистрация</p>
+              <h1 className="font-heading text-2xl font-semibold md:text-3xl">{eventTitle}</h1>
             </div>
-          ) : null}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Email *</Label>
-            <Input
-              className="mt-1"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
           </div>
-          <div>
-            <Label>Имя *</Label>
-            <Input className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <Label>Телефон</Label>
-            <Input className="mt-1" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div>
-            <Label>Страна</Label>
-            <Select value={country} onValueChange={(v) => v && setCountry(v)}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Выберите страну" />
-              </SelectTrigger>
-              <SelectContent>
-                {COUNTRY_OPTIONS.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Город</Label>
-            <Input className="mt-1" value={city} onChange={(e) => setCity(e.target.value)} />
-          </div>
-          <div>
-            <Label>Язык интерфейса</Label>
-            <Select value={language} onValueChange={(v) => v && setLanguage(v)}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SUPPORTED_VISITOR_LANGUAGES.map((l) => (
-                  <SelectItem key={l.code} value={l.code}>
-                    {l.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            className="w-full"
-            style={{ backgroundColor: 'var(--event-accent)' }}
-            onClick={() => void submit()}
-            disabled={busy}
+        </motion.div>
+      </section>
+
+      <div className="mx-auto grid max-w-4xl gap-8 px-4 py-10 md:grid-cols-2 md:px-6">
+        {/* Tier card */}
+        {tierName ? (
+          <motion.section
+            {...fadeUp}
+            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-sm)]"
           >
-            {busy ? 'Регистрация…' : 'Зарегистрироваться'}
-          </Button>
-          {message ? <p className="text-sm text-destructive">{message}</p> : null}
-        </CardContent>
-      </Card>
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold"
+              style={{
+                backgroundColor: `${tierColor}15`,
+                color: tierColor,
+                border: `1px solid ${tierColor}30`,
+              }}
+            >
+              <StarIcon size={14} />
+              {tierName}
+            </div>
+            <h2 className="mt-4 font-heading text-lg font-semibold text-[var(--brand)]">
+              Что включено
+            </h2>
+            {privileges.length > 0 ? (
+              <ul className="mt-3 space-y-2">
+                {privileges.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-[var(--muted)]">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            ) : tierDesc ? (
+              <p className="mt-3 text-sm text-[var(--muted)]">{tierDesc}</p>
+            ) : null}
+          </motion.section>
+        ) : (
+          <div className="hidden md:block" />
+        )}
+
+        {/* Form */}
+        <motion.section
+          {...fadeUp}
+          className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-sm)]"
+        >
+          <h2 className="font-heading text-lg font-semibold text-[var(--brand)]">
+            Ваши данные
+          </h2>
+          <div className="mt-6 space-y-4">
+            <div>
+              <Label className="text-[var(--text)]">Email *</Label>
+              <Input
+                className="mt-1"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-[var(--text)]">Имя *</Label>
+              <Input className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-[var(--text)]">Телефон</Label>
+              <Input className="mt-1" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-[var(--text)]">Страна</Label>
+              <Select value={country} onValueChange={(v) => v && setCountry(v)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Выберите страну" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRY_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[var(--text)]">Город</Label>
+              <Input className="mt-1" value={city} onChange={(e) => setCity(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-[var(--text)]">Язык интерфейса</Label>
+              <Select value={language} onValueChange={(v) => v && setLanguage(v)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_VISITOR_LANGUAGES.map((l) => (
+                    <SelectItem key={l.code} value={l.code}>
+                      {l.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <GuideButton className="w-full" onClick={() => void submit()} disabled={busy}>
+              {busy ? 'Регистрация…' : 'Зарегистрироваться'}
+            </GuideButton>
+            {message ? (
+              <p className="text-sm text-[var(--error)]">{message}</p>
+            ) : null}
+          </div>
+        </motion.section>
+      </div>
     </div>
   )
 }

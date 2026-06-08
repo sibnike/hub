@@ -1,18 +1,19 @@
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { GuideHeader } from '@/components/visitor/guide-header'
+import { EventThemeShell } from '@/components/design/event-theme-shell'
 import { getPublishedEvent } from '@/lib/hub/get-published-event'
 import { getCurrentVisitor } from '@/lib/visitor/current'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 type LayoutProps = {
   children: React.ReactNode
+  modal: React.ReactNode
   params: { slug: string }
 }
 
-export default async function GuideLayout({ children, params }: LayoutProps) {
+export default async function GuideLayout({ children, modal, params }: LayoutProps) {
   const event = await getPublishedEvent(params.slug)
   if (!event) notFound()
 
@@ -29,7 +30,7 @@ export default async function GuideLayout({ children, params }: LayoutProps) {
     .eq('id', visitor.id)
 
   return (
-    <>
+    <EventThemeShell settings={event.settings}>
       <GuideHeader
         slug={event.slug}
         name={event.name}
@@ -39,6 +40,7 @@ export default async function GuideLayout({ children, params }: LayoutProps) {
         visitor={visitor}
       />
       {children}
-    </>
+      {modal}
+    </EventThemeShell>
   )
 }

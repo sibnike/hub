@@ -254,6 +254,12 @@ export function EventManageClient({ slug }: { slug: string }) {
                 >
                   Опросы
                 </Link>
+                <Link
+                  href={`/organizer/events/${slug}/branding`}
+                  className="inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-sm font-medium hover:bg-muted"
+                >
+                  Брендинг
+                </Link>
               </div>
             </CardContent>
           </Card>

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { EventThemeShell } from '@/components/design/event-theme-shell'
 import { RegistrationForm } from '@/components/visitor/registration-form'
 import { InvalidInvite } from '@/components/visitor/invalid-invite'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -31,15 +32,21 @@ export default async function InvitePage({ params }: PageProps) {
     .eq('invite_token', params.token)
     .maybeSingle()
 
+  const shell = (content: React.ReactNode) => (
+    <EventThemeShell settings={event.settings as Record<string, unknown>}>
+      {content}
+    </EventThemeShell>
+  )
+
   if (!invitation || invitation.event_id !== event.id) {
-    return <InvalidInvite slug={params.slug} reason="invalid" />
+    return shell(<InvalidInvite slug={params.slug} reason="invalid" />)
   }
 
   if (!invitation.is_active) {
-    return <InvalidInvite slug={params.slug} reason="inactive" />
+    return shell(<InvalidInvite slug={params.slug} reason="inactive" />)
   }
 
-  return (
+  return shell(
     <RegistrationForm
       event={event as HubEventRow}
       invitation={invitation as EventInvitationRow}

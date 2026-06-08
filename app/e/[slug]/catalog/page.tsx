@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { EventThemeShell } from '@/components/design/event-theme-shell'
 import { InviteRequired } from '@/components/public/invite-required'
 import { formatDateRangeLabel } from '@/lib/hub/event-dates'
 import { getPublishedEvent } from '@/lib/hub/get-published-event'
@@ -30,5 +31,9 @@ export default async function CatalogPage({ params }: PageProps) {
   const event = await getPublishedEvent(params.slug)
   if (!event) notFound()
 
-  return <InviteRequired slug={event.slug} />
+  return (
+    <EventThemeShell settings={event.settings}>
+      <InviteRequired slug={event.slug} event={event} />
+    </EventThemeShell>
+  )
 }

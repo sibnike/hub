@@ -1,9 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { HeartFilledIcon, HeartIcon } from '@/components/icons'
+import { HeroBanner } from '@/components/design/hero-banner'
 import { EventMap } from '@/components/public/event-map'
 import { useVisitorFavorites } from '@/lib/hooks/use-visitor-favorites'
-import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import type { IndustryCategory } from '@/types/catalog'
 import type { EventMapRow, MapStandRow } from '@/types/map'
 
@@ -41,18 +43,28 @@ export function GuideMapClient({
 
   return (
     <div className="space-y-3">
-      <div className="container flex items-center gap-2 pt-4">
-        <input
-          id="fav-only"
-          type="checkbox"
-          checked={showOnlyFavorites}
-          onChange={(e) => setShowOnlyFavorites(e.target.checked)}
-          className="rounded border"
-        />
-        <Label htmlFor="fav-only" className="text-sm cursor-pointer">
-          Показать только избранные
-        </Label>
+      <HeroBanner title="Карта выставки" subtitle={`${stands.length} стендов`} />
+
+      <div className="container flex items-center gap-3 px-4 pt-2 md:px-6">
+        <button
+          type="button"
+          onClick={() => setShowOnlyFavorites((v) => !v)}
+          className={cn(
+            'inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition',
+            showOnlyFavorites
+              ? 'border-[var(--accent)] bg-[var(--surface2)] text-[var(--accent)]'
+              : 'border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface2)]'
+          )}
+        >
+          {showOnlyFavorites ? (
+            <HeartFilledIcon size={18} className="text-[var(--accent)]" />
+          ) : (
+            <HeartIcon size={18} />
+          )}
+          Только избранные
+        </button>
       </div>
+
       <EventMap
         eventSlug={eventSlug}
         maps={maps}

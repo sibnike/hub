@@ -1,16 +1,47 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { motion } from 'framer-motion'
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  CloseIcon,
+  HeartIcon,
+} from '@/components/icons'
+import { EmptyState } from '@/components/design/empty-state'
+import { GuideButton } from '@/components/design/guide-buttons'
+import { HeroBanner } from '@/components/design/hero-banner'
+import { ParticipantCardSkeletonGrid } from '@/components/design/participant-card-skeleton'
+import { fadeUp, stagger } from '@/lib/design/animations'
 import { useVisitorFavorites } from '@/lib/hooks/use-visitor-favorites'
-import type { CatalogParticipant } from '@/types/catalog'
 import { cn } from '@/lib/utils'
+import type { CatalogParticipant } from '@/types/catalog'
+import type { VisitorFavoriteRow } from '@/types/visitor'
 
 const STATUS_ORDER = { planned: 0, met: 1, skipped: 2 } as const
+
+type StatusFilter = 'all' | VisitorFavoriteRow['status']
+
+const STATUS_LABELS: Record<VisitorFavoriteRow['status'], string> = {
+  planned: 'Запланировано',
+  met: 'Встретился',
+  skipped: 'Пропустил',
+}
+
+const STATUS_COLORS: Record<VisitorFavoriteRow['status'], string> = {
+  planned: 'var(--info)',
+  met: 'var(--success)',
+  skipped: 'var(--muted)',
+}
+
+const FILTER_TABS: { key: StatusFilter; label: string }[] = [
+  { key: 'all', label: 'Все' },
+  { key: 'planned', label: 'Запланировано' },
+  { key: 'met', label: 'Встретился' },
+  { key: 'skipped', label: 'Пропустил' },
+]
 
 type FavoritesPageProps = {
   eventId: string
@@ -20,6 +51,8 @@ type FavoritesPageProps = {
 
 export function FavoritesPage({ eventId, eventSlug, participations }: FavoritesPageProps) {
   const { favorites, loading, updateStatus } = useVisitorFavorites(eventId)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [expandedNote, setExpandedNote] = useState<string | null>(null)
 
   const byTenant = useMemo(
     () => new Map(participations.map((p) => [p.tenant_id, p])),
@@ -35,112 +68,181 @@ export function FavoritesPage({ eventId, eventSlug, participations }: FavoritesP
     })
   }, [favorites])
 
-  function exportContacts() {
-    const met = sorted.filter((f) => f.status === 'met')
-    const lines = ['company,tenant_slug']
-    for (const fav of met) {
-      const p = byTenant.get(fav.tenant_id)
-      if (p) lines.push(`"${p.cache.name ?? p.tenant_slug}",${p.tenant_slug}`)
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `contacts-${eventSlug}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+  const filtered = useMemo(() => {
+    if (statusFilter === 'all') return sorted
+    return sorted.filter((f) => f.status === statusFilter)
+  }, [sorted, statusFilter])
 
-  if (loading) return <p className="container py-8 text-sm text-muted-foreground">Загрузка…</p>
+  if (loading) {
+    return (
+      <div>
+        <HeroBanner title="Избранное" subtitle="Загрузка…" />
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 sm:grid-cols-2 lg:grid-cols-3 md:px-6">
+          <ParticipantCardSkeletonGrid count={6} />
+        </div>
+      </div>
+    )
+  }
 
   if (sorted.length === 0) {
     return (
-      <div className="container py-12 text-center text-muted-foreground">
-        <p>Избранное пусто.</p>
-        <Button
-          className="mt-4"
-          variant="outline"
-          render={<Link href={`/e/${eventSlug}/guide/catalog`} />}
-        >
-          Перейти в каталог
-        </Button>
+      <div>
+        <HeroBanner title="Избранное" subtitle="0 компаний" />
+        <EmptyState
+          icon={HeartIcon}
+          title="Пока никого не добавили в избранное"
+          description="Откройте каталог, найдите интересные компании и нажмите на сердечко."
+          actionLabel="Перейти в каталог"
+          actionHref={`/e/${eventSlug}/guide/catalog`}
+        />
       </div>
     )
   }
 
   return (
-    <div className="container py-6 space-y-4 max-w-3xl">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Моё избранное ({sorted.length})</h2>
-        <Button variant="outline" size="sm" onClick={exportContacts}>
-          Экспортировать контакты
-        </Button>
-      </div>
+    <div>
+      <HeroBanner title="Избранное" subtitle={`${sorted.length} компаний`}>
+        <span title="Скоро">
+          <GuideButton disabled variant="secondary" className="text-sm">
+            Экспортировать контакты
+          </GuideButton>
+        </span>
+      </HeroBanner>
 
-      <div className="space-y-4">
-        {sorted.map((fav) => {
-          const p = byTenant.get(fav.tenant_id)
-          if (!p) return null
-          const name = p.cache.name ?? p.tenant_slug
+      <div className="mx-auto max-w-6xl px-4 py-6 md:px-6">
+        <div className="mb-6 flex flex-wrap gap-2">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setStatusFilter(tab.key)}
+              className={cn(
+                'rounded-full border px-4 py-1.5 text-sm font-medium transition',
+                statusFilter === tab.key
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                  : 'border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface2)]'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          return (
-            <Card key={fav.id}>
-              <CardContent className="py-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border bg-muted">
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={HeartIcon}
+            title="Нет компаний с таким статусом"
+            description="Выберите другой фильтр или добавьте компании в избранное."
+            actionLabel="Перейти в каталог"
+            actionHref={`/e/${eventSlug}/guide/catalog`}
+          />
+        ) : (
+          <motion.div {...stagger} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((fav) => {
+              const p = byTenant.get(fav.tenant_id)
+              if (!p) return null
+              const name = p.cache.name ?? p.tenant_slug
+              const statusColor = STATUS_COLORS[fav.status]
+
+              return (
+                <motion.div
+                  key={fav.id}
+                  {...fadeUp}
+                  className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-sm)]"
+                >
+                  <div className="relative flex h-32 items-center justify-center bg-[var(--surface2)]">
                     {p.cache.logo_url ? (
-                      <Image src={p.cache.logo_url} alt="" fill className="object-cover" unoptimized />
+                      <Image
+                        src={p.cache.logo_url}
+                        alt=""
+                        width={120}
+                        height={64}
+                        className="max-h-16 max-w-[60%] object-contain"
+                        unoptimized
+                      />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs font-semibold">
+                      <span className="font-heading text-xl font-semibold text-[var(--subtle)]">
                         {name.slice(0, 2).toUpperCase()}
-                      </div>
+                      </span>
                     )}
+                    <span
+                      className="absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                      style={{
+                        backgroundColor: `${statusColor}15`,
+                        color: statusColor,
+                        border: `1px solid ${statusColor}30`,
+                      }}
+                    >
+                      {STATUS_LABELS[fav.status]}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
+
+                  <div className="space-y-3 p-5">
                     <Link
                       href={`/e/${eventSlug}/guide/company/${p.tenant_slug}`}
-                      className="font-medium hover:underline"
+                      className="font-heading text-lg font-semibold text-[var(--brand)] hover:text-[var(--accent)]"
                     >
                       {name}
                     </Link>
-                  </div>
-                </div>
 
-                <div className="flex gap-1">
-                  {(['planned', 'met', 'skipped'] as const).map((status) => {
-                    const labels = { planned: 'Планирую', met: 'Встретился', skipped: 'Пропустил' }
-                    return (
+                    <div className="flex gap-1">
+                      {(['planned', 'met', 'skipped'] as const).map((status) => {
+                        const icons = {
+                          planned: ClockIcon,
+                          met: CheckCircleIcon,
+                          skipped: CloseIcon,
+                        }
+                        const Icon = icons[status]
+                        const active = fav.status === status
+                        return (
+                          <button
+                            key={status}
+                            type="button"
+                            title={STATUS_LABELS[status]}
+                            onClick={() =>
+                              void updateStatus(fav.tenant_id, status, fav.note ?? undefined)
+                            }
+                            className={cn(
+                              'flex flex-1 items-center justify-center rounded-lg border py-2 transition',
+                              active
+                                ? 'border-[var(--accent)] bg-[var(--surface2)] text-[var(--accent)]'
+                                : 'border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface2)]'
+                            )}
+                          >
+                            <Icon size={18} />
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {expandedNote === fav.id ? (
+                      <textarea
+                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                        placeholder="Заметка…"
+                        defaultValue={fav.note ?? ''}
+                        rows={2}
+                        onBlur={(e) => {
+                          const note = e.target.value.trim()
+                          if (note !== (fav.note ?? '')) {
+                            void updateStatus(fav.tenant_id, fav.status, note || undefined)
+                          }
+                        }}
+                      />
+                    ) : (
                       <button
-                        key={status}
                         type="button"
-                        onClick={() => void updateStatus(fav.tenant_id, status, fav.note ?? undefined)}
-                        className={cn(
-                          'rounded-md px-2 py-1 text-xs border transition-colors',
-                          fav.status === status
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'hover:bg-muted'
-                        )}
+                        onClick={() => setExpandedNote(fav.id)}
+                        className="text-sm text-[var(--accent)] hover:opacity-80"
                       >
-                        {labels[status]}
+                        {fav.note ? 'Редактировать заметку' : 'Добавить заметку'}
                       </button>
-                    )
-                  })}
-                </div>
-
-                <Input
-                  placeholder="Заметка…"
-                  defaultValue={fav.note ?? ''}
-                  onBlur={(e) => {
-                    const note = e.target.value.trim()
-                    if (note !== (fav.note ?? '')) {
-                      void updateStatus(fav.tenant_id, fav.status, note || undefined)
-                    }
-                  }}
-                />
-              </CardContent>
-            </Card>
-          )
-        })}
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })}
+          </motion.div>
+        )}
       </div>
     </div>
   )
