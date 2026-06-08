@@ -37,6 +37,9 @@ type EventMapProps = {
   categories: IndustryCategory[]
   unplacedCount: number
   highlightStandId?: string | null
+  favoriteTenantIds?: Set<string>
+  guideMode?: boolean
+  guideBasePath?: string
 }
 
 function isPlaced(stand: MapStandRow): boolean {
@@ -62,6 +65,9 @@ export function EventMap({
   categories,
   unplacedCount,
   highlightStandId = null,
+  favoriteTenantIds,
+  guideMode = false,
+  guideBasePath,
 }: EventMapProps) {
   const { locale } = useEventLocale()
   const { embed } = useEmbed()
@@ -336,6 +342,8 @@ export function EventMap({
                 const matched = !hasActiveFilters || matchedStandIds.has(stand.id)
                 const cat = dominantCategory(stand.cache?.categories)
                 const borderColor = cat ? categoryColor(cat) : undefined
+                const isFavorite =
+                  stand.tenant_id != null && (favoriteTenantIds?.has(stand.tenant_id) ?? false)
 
                 return (
                   <button
@@ -347,7 +355,9 @@ export function EventMap({
                       matched
                         ? hasActiveFilters
                           ? 'animate-pulse border-[var(--event-accent)] ring-2 ring-[var(--event-accent)] opacity-100'
-                          : 'border-foreground/30 opacity-100 hover:border-[var(--event-accent)] hover:bg-background/90'
+                          : isFavorite
+                            ? 'border-amber-400 ring-2 ring-amber-300 opacity-100 hover:bg-background/90'
+                            : 'border-foreground/30 opacity-100 hover:border-[var(--event-accent)] hover:bg-background/90'
                         : 'opacity-25 border-foreground/20'
                     )}
                     style={{
@@ -355,7 +365,12 @@ export function EventMap({
                       top: `${stand.map_y}%`,
                       width: `${stand.map_width}%`,
                       height: `${stand.map_height}%`,
-                      borderColor: matched && borderColor ? borderColor : undefined,
+                      borderColor:
+                        matched && isFavorite
+                          ? '#f59e0b'
+                          : matched && borderColor
+                            ? borderColor
+                            : undefined,
                     }}
                     onClick={() => {
                       setSelectedStand(stand)
@@ -448,7 +463,11 @@ export function EventMap({
                 ) : null}
                 {selectedStand.tenant_slug ? (
                   <Link
-                    href={`/e/${eventSlug}/company/${selectedStand.tenant_slug}`}
+                    href={
+                      guideMode && guideBasePath
+                        ? `${guideBasePath}/company/${selectedStand.tenant_slug}`
+                        : `/e/${eventSlug}/company/${selectedStand.tenant_slug}`
+                    }
                     className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
                   >
                     Открыть профиль

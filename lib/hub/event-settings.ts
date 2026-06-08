@@ -11,6 +11,8 @@ export type EventSettings = {
   brand_logo_url?: string
   brand_color?: string
   brand_footer_text?: string
+  welcome_message?: I18nMap
+  hero_image_url?: string
 }
 
 export function parseEventSettings(raw: Record<string, unknown> | null | undefined): EventSettings {
@@ -31,6 +33,12 @@ export function parseEventSettings(raw: Record<string, unknown> | null | undefin
     brand_color: typeof raw.brand_color === 'string' ? raw.brand_color : undefined,
     brand_footer_text:
       typeof raw.brand_footer_text === 'string' ? raw.brand_footer_text : undefined,
+    welcome_message:
+      raw.welcome_message && typeof raw.welcome_message === 'object'
+        ? (raw.welcome_message as I18nMap)
+        : undefined,
+    hero_image_url:
+      typeof raw.hero_image_url === 'string' ? raw.hero_image_url : undefined,
   }
 }
 

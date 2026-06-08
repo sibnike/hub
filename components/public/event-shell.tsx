@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { EmbedHeightReporter } from '@/components/public/embed-height-reporter'
 import { EventHeader } from '@/components/public/event-header'
 import { EventLocaleProvider } from '@/components/public/event-locale-context'
@@ -21,9 +21,14 @@ type EventShellProps = {
 }
 
 function EventShellInner({ event, whiteLabel, children }: EventShellProps) {
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const embed = searchParams.get('embed') === '1'
   const track = searchParams.get('track') === '1'
+  const isVisitorFlow =
+    pathname.includes('/guide') ||
+    pathname.includes('/invite/') ||
+    pathname.includes('/invalid-link')
 
   const settings = parseEventSettings(event.settings)
   const locales = getEventLocales(settings)
@@ -48,7 +53,7 @@ function EventShellInner({ event, whiteLabel, children }: EventShellProps) {
             } as React.CSSProperties
           }
         >
-          {!embed ? (
+          {!embed && !isVisitorFlow ? (
             <EventHeader
               slug={event.slug}
               name={event.name}

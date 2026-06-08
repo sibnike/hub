@@ -128,6 +128,7 @@ export function EventManageClient({ slug }: { slug: string }) {
           <TabsTrigger value="map">Карта</TabsTrigger>
           <TabsTrigger value="analytics">Аналитика</TabsTrigger>
           <TabsTrigger value="embed">Embed</TabsTrigger>
+          <TabsTrigger value="visitors">Посетители</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="mt-4">
@@ -218,6 +219,42 @@ export function EventManageClient({ slug }: { slug: string }) {
               >
                 Настроить встраивание
               </Link>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="visitors" className="mt-4">
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Гайд посетителя: tier&apos;ы, приглашения, регистрация, опросы и бонусы.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/organizer/events/${slug}/visitors`}
+                  className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+                >
+                  Список посетителей
+                </Link>
+                <Link
+                  href={`/organizer/events/${slug}/visitors/tiers`}
+                  className="inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-sm font-medium hover:bg-muted"
+                >
+                  Tier&apos;ы
+                </Link>
+                <Link
+                  href={`/organizer/events/${slug}/visitors/invitations`}
+                  className="inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-sm font-medium hover:bg-muted"
+                >
+                  Приглашения
+                </Link>
+                <Link
+                  href={`/organizer/events/${slug}/polls`}
+                  className="inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-sm font-medium hover:bg-muted"
+                >
+                  Опросы
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

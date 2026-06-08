@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { CatalogClient } from '@/components/public/catalog-client'
+import { InviteRequired } from '@/components/public/invite-required'
 import { formatDateRangeLabel } from '@/lib/hub/event-dates'
-import { getCatalogParticipants } from '@/lib/hub/get-catalog-participants'
-import { getIndustryCategories } from '@/lib/hub/get-industry-categories'
 import { getPublishedEvent } from '@/lib/hub/get-published-event'
 import { getI18nText } from '@/lib/i18n/get-text'
 
@@ -32,16 +30,5 @@ export default async function CatalogPage({ params }: PageProps) {
   const event = await getPublishedEvent(params.slug)
   if (!event) notFound()
 
-  const [participations, categories] = await Promise.all([
-    getCatalogParticipants(event.id),
-    getIndustryCategories(),
-  ])
-
-  return (
-    <CatalogClient
-      eventSlug={event.slug}
-      participations={participations}
-      categories={categories}
-    />
-  )
+  return <InviteRequired slug={event.slug} />
 }
