@@ -15,6 +15,7 @@ export type CompanyCacheRow = {
   categories: string[]
   tags: string[]
   country: string | null
+  city: string | null
   website: string | null
   social_links: Record<string, string>
   contact_persons: ContactPerson[]

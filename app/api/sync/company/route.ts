@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     categories?: string[]
     tags?: string[]
     country?: string
+    city?: string
     website?: string
     social_links?: Record<string, string>
     contact_persons?: unknown[]
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
       categories: data.categories,
       tags: data.tags,
       country: data.country,
+      city: data.city,
       website: data.website,
       social_links: data.social_links,
       contact_persons: data.contact_persons,

@@ -29,6 +29,23 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 ---
 
+## Marketplace — Механика 1: AI-поиск тенанта ✅
+
+Реализовано (H-M1):
+
+- Vitrina webhook передаёт `city` в `hub.company_cache`.
+- FTS: `search_vector` (GIN) + RPC `hub.search_company_cache`.
+- AI-парсинг свободного текста → структурированный фильтр (Anthropic), поиск — детерминированный SQL.
+- API: `POST /api/marketplace/search`.
+- UI: `/marketplace` (временный entry point до решения по корневому домену).
+- Карточки ведут на Vitrina: `/p/{slug}` или `/h/{tenantSlug}` (контекст-нейтрально).
+
+Документация: `docs/TZ-Marketplace-Tenant-Search.md`.
+
+Не входит: embedding-поиск, механика 2 (услуги/страницы), механика 3 (`meeting_requests`).
+
+---
+
 ## Фаза H-11 — Запросы и назначение встреч
 
 Сейчас кнопка «Встреча» в карточке компании — заглушка (Toast «Скоро»). Раскрыть её.

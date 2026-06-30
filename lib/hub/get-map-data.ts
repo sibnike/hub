@@ -18,6 +18,7 @@ function normalizeCache(row: Record<string, unknown>): CompanyCacheRow {
       ? row.tags.filter((t): t is string => typeof t === 'string')
       : [],
     country: typeof row.country === 'string' ? row.country : null,
+    city: typeof row.city === 'string' ? row.city : null,
     website: typeof row.website === 'string' ? row.website : null,
     social_links:
       row.social_links && typeof row.social_links === 'object'
