@@ -79,6 +79,7 @@ export async function searchCompanyCache(
 
   return rows.map((row) => ({
     ...toCacheRow(row),
+    result_type: 'tenant' as const,
     tenant_slug: slugByTenant.get(String(row.tenant_id)) ?? null,
     rank: typeof row.rank === 'number' ? row.rank : 0,
   }))

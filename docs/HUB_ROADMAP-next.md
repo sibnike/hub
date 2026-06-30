@@ -42,7 +42,22 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 Документация: `docs/TZ-Marketplace-Tenant-Search.md`.
 
-Не входит: embedding-поиск, механика 2 (услуги/страницы), механика 3 (`meeting_requests`).
+Не входит: embedding-поиск, механика 3 (`meeting_requests`).
+
+---
+
+## Marketplace — Механика 2: AI-поиск услуг/page ✅
+
+Реализовано (H-M2):
+
+- `hub.listing_cache` — денормализованный кэш на уровне page (title, short_text, categories).
+- FTS: `search_vector` (GIN) + RPC `hub.search_listing_cache`.
+- Vitrina webhook: `POST /api/sync/listing` (upsert/delete при публикации/снятии page).
+- AI-парсинг — переиспользует `parse-marketplace-query.ts` из Механики 1.
+- API: `POST /api/marketplace/search-listings`.
+- UI `/marketplace` — единая лента: карточки «Компания» и «Услуга», услуги ведут на `/p/{slug}?tenant=…`.
+
+Документация: `docs/TZ-Marketplace-Listing-Search.md`.
 
 ---
 
