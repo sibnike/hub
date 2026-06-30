@@ -61,6 +61,21 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 ---
 
+## Marketplace — Механика 3a: формирование запроса (внешний заявитель) ✅
+
+Реализовано (H-M3a), поток 3b (внутренний запрос тенанта → booking) **не входит**.
+
+- `hub.marketplace_requests` + `hub.marketplace_request_targets` + RLS (токен в заголовке, не URL).
+- AI-парсинг, маршрутизация M1/M2, фильтр занятости (Vitrina availability API).
+- **Variant B:** Hub → `POST /api/integrations/submissions` (Vitrina, HMAC) → inbox тенанта.
+- UI `/marketplace`: вкладки «Поиск» и «Отправить запрос».
+
+**Отложено:** обратный канал ответа тенанта → заявитель (webhook Vitrina → Hub); адресация на сотрудника.
+
+Документация: `docs/TZ-Marketplace-Request.md`, Vitrina `docs/INTEGRATION-VITRINA-SUBMISSIONS-FROM-TOUCHIN.md`.
+
+---
+
 ## Фаза H-11 — Запросы и назначение встреч
 
 Сейчас кнопка «Встреча» в карточке компании — заглушка (Toast «Скоро»). Раскрыть её.

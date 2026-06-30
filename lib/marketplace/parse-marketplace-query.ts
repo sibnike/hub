@@ -1,18 +1,12 @@
 import { callAnthropic } from '@/lib/ai/call-anthropic'
 import { getIndustryCategories } from '@/lib/hub/get-industry-categories'
 import { getI18nText } from '@/lib/i18n/get-text'
+import { extractJsonObject } from '@/lib/marketplace/marketplace-ai-json'
 import {
   emptySearchFilter,
   normalizeSearchFilter,
 } from '@/lib/marketplace/normalize-search-filter'
 import type { MarketplaceSearchFilter } from '@/types/marketplace-search'
-
-function extractJsonObject(raw: string): unknown {
-  const trimmed = raw.trim()
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  const candidate = fenced?.[1]?.trim() ?? trimmed
-  return JSON.parse(candidate) as unknown
-}
 
 export async function parseMarketplaceQuery(
   query: string

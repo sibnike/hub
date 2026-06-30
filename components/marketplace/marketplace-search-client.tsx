@@ -215,7 +215,7 @@ function ListingCard({
   )
 }
 
-export function MarketplaceSearchClient({ categories }: MarketplaceSearchClientProps) {
+export function MarketplaceSearchPanel({ categories }: MarketplaceSearchClientProps) {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -300,14 +300,7 @@ export function MarketplaceSearchClient({ categories }: MarketplaceSearchClientP
   const listingCount = results.filter((r) => r.result_type === 'listing').length
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 md:px-6">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Поиск на Yanbada</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Опишите задачу своими словами — мы найдём компании и конкретные услуги на платформе.
-        </p>
-      </header>
-
+    <>
       <form onSubmit={handleSubmit} className="mb-6">
         <div className="relative">
           <SearchIcon
@@ -382,6 +375,9 @@ export function MarketplaceSearchClient({ categories }: MarketplaceSearchClientP
           </li>
         ))}
       </ul>
-    </div>
+    </>
   )
 }
+
+/** @deprecated use MarketplaceSearchPanel */
+export const MarketplaceSearchClient = MarketplaceSearchPanel

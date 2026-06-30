@@ -1,4 +1,4 @@
-import { MarketplaceSearchClient } from '@/components/marketplace/marketplace-search-client'
+import { MarketplacePageClient } from '@/components/marketplace/marketplace-page-client'
 import { getIndustryCategories } from '@/lib/hub/get-industry-categories'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +13,7 @@ export default async function MarketplacePage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <MarketplaceSearchClient categories={categories} />
+      <MarketplacePageClient categories={categories} />
     </main>
   )
 }
