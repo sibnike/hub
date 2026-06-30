@@ -9,7 +9,7 @@
  * Env (from .env.local or export):
  *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  *   HUB_BASE_URL (default http://localhost:3001) — for API tests
- *   ANTHROPIC_API_KEY — optional, for AI parse test
+ *   HUB_BASE_URL must serve /api/marketplace/search with ANTHROPIC_API_KEY on the server
  */
 
 import { readFileSync, existsSync } from 'node:fs'
@@ -159,11 +159,6 @@ async function testApiFilterPath() {
 }
 
 async function testApiAiParse() {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    pass('3. AI parse skipped', 'ANTHROPIC_API_KEY not set')
-    return
-  }
-
   const res = await fetch(`${hubBase}/api/marketplace/search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

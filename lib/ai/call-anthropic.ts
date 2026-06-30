@@ -1,7 +1,4 @@
-import {
-  ANTHROPIC_API_URL,
-  ANTHROPIC_MARKETPLACE_MODEL,
-} from '@/lib/ai/anthropic-config'
+import { ANTHROPIC_API_URL, ANTHROPIC_TRANSLATE_MODEL } from '@/lib/ai/anthropic-config'
 
 export async function callAnthropic(params: {
   system: string
@@ -21,7 +18,7 @@ export async function callAnthropic(params: {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: ANTHROPIC_MARKETPLACE_MODEL,
+      model: ANTHROPIC_TRANSLATE_MODEL,
       max_tokens: params.maxTokens,
       system: params.system,
       messages: [{ role: 'user', content: params.user }],
