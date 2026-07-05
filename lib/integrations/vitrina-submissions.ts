@@ -3,6 +3,10 @@ import {
   getVitrinaIngestSecret,
   signVitrinaIngestPayload,
 } from '@/lib/integrations/vitrina-ingest'
+import {
+  fetchVitrinaIngestWithRetry,
+  throttleVitrinaIngest,
+} from '@/lib/integrations/vitrina-ingest-throttle'
 import type { MarketplaceRequestParsed } from '@/types/marketplace-request'
 
 export type VitrinaSubmissionField = {
@@ -18,6 +22,9 @@ export type CreateVitrinaSubmissionInput = {
   fields: VitrinaSubmissionField[]
   locale?: string
   metadata?: Record<string, unknown>
+  sourceType?: 'marketplace'
+  requesterTenantId?: string
+  marketplaceRequestTargetId?: string
 }
 
 export type CreateVitrinaSubmissionResult = {
@@ -32,6 +39,9 @@ export function buildMarketplaceSubmissionFields(input: {
   requesterContact: string
   requestText: string
   parsed: MarketplaceRequestParsed | null
+  budgetAmount?: number | null
+  budgetCurrency?: string | null
+  marketplaceRequestTargetId?: string
 }): VitrinaSubmissionField[] {
   const fields: VitrinaSubmissionField[] = [
     { key: 'requester_name', label: 'Заявитель', value: input.requesterName },
@@ -55,11 +65,31 @@ export function buildMarketplaceSubmissionFields(input: {
     })
   }
 
-  if (input.parsed?.requester_proposed_price != null) {
+  const budget =
+    input.budgetAmount ??
+    input.parsed?.requester_proposed_price ??
+    null
+
+  if (budget != null) {
     fields.push({
       key: 'proposed_price',
       label: 'Бюджет заявителя',
-      value: String(input.parsed.requester_proposed_price),
+      value: String(budget),
+    })
+    if (input.budgetCurrency) {
+      fields.push({
+        key: 'budget_currency',
+        label: 'Валюта бюджета',
+        value: input.budgetCurrency,
+      })
+    }
+  }
+
+  if (input.marketplaceRequestTargetId) {
+    fields.push({
+      key: 'marketplace_request_target_id',
+      label: 'ID таргета',
+      value: input.marketplaceRequestTargetId,
     })
   }
 
@@ -72,21 +102,43 @@ export async function createVitrinaHubSubmission(
   const secret = getVitrinaIngestSecret()
   const base = getVitrinaApiBase()
 
-  const body = {
-    source: 'hub' as const,
+  const fields = [...input.fields]
+  if (
+    input.marketplaceRequestTargetId &&
+    !fields.some((f) => f.key === 'marketplace_request_target_id')
+  ) {
+    fields.push({
+      key: 'marketplace_request_target_id',
+      label: 'ID таргета',
+      value: input.marketplaceRequestTargetId,
+    })
+  }
+
+  const body: Record<string, unknown> = {
+    source: 'hub',
     external_id: input.externalId,
     tenant_slug: input.tenantSlug,
     assigned_staff_id: null,
     locale: input.locale ?? 'ru',
     title: input.title,
-    fields: input.fields,
+    fields,
     metadata: input.metadata,
+  }
+
+  if (input.sourceType === 'marketplace') {
+    body.source_type = 'marketplace'
+  }
+
+  if (input.requesterTenantId) {
+    body.requester_tenant_id = input.requesterTenantId
   }
 
   const payload = JSON.stringify(body)
   const signature = signVitrinaIngestPayload(payload, secret)
 
-  const res = await fetch(`${base}/api/integrations/submissions`, {
+  await throttleVitrinaIngest(input.tenantSlug)
+
+  const res = await fetchVitrinaIngestWithRetry(`${base}/api/integrations/submissions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

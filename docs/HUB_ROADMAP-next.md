@@ -89,11 +89,12 @@ Framer Motion анимации, скелетоны вместо спиннеро
 - **Variant B:** Hub → `POST /api/integrations/submissions` (Vitrina, HMAC) → inbox тенанта.
 - UI `/marketplace`: вкладки «Поиск» и «Отправить запрос».
 
-**Отложено (не сделано, отдельные задачи):**
+**Отложено — отдельные будущие задачи, не сделаны:**
 
-- Обратный канал ответа тенанта → заявитель (webhook Vitrina → Hub).
 - Поток **3b** — внутренние B2B-запросы тенанта (встраивание исполнителя в booking заявителя).
 - Адресация на уровне сотрудника (v1 = тенант).
+
+**Закрыто в M4d:** обратный канал тенант → заявитель (`POST /api/marketplace/response`, UI «Мои запросы»).
 
 Документация: `docs/TZ-Marketplace-Request.md`, Vitrina `docs/INTEGRATION-VITRINA-SUBMISSIONS-FROM-TOUCHIN.md`.
 
@@ -144,11 +145,26 @@ Framer Motion анимации, скелетоны вместо спиннеро
 - Platform admin: `/admin/marketplace/[slug]/presets`.
 - Тест: `npm run test:marketplace-m4c`.
 
-**Ограничение v1:** `requester_tenant_id` и `source_type=marketplace` в колонках `submissions` — после доработки Vitrina (M4d). Ingest кладёт атрибуцию в metadata.
+**Ограничение v1:** UI accept/decline в Vitrina inbox — V-32 (отдельный агент vitrina). Hub-эндпоинт response готов.
 
-**Следующие фазы:** M4d (запрос v2, обратный канал).
+**Следующие фазы:** после M4d — поток 3b, платежи/escrow.
 
 Документация: `docs/TZ-Marketplace-Search-Flow.md`.
+
+---
+
+## Marketplace — H-M4d: запрос v2 (бюджет + accept/decline + обратный канал)
+
+Реализовано (H-M4d), миграция `20260705220000_marketplace_request_v2_m4d` (дубль в vitrina):
+
+- Budget + `requester_tenant_id` на `marketplace_requests`; `response_status` на targets.
+- Guided-флоу: «Отправить запрос» с бюджетом → multi-target ingest (`source_type=marketplace`).
+- Ingest throttle 400ms/tenant + retry backoff на 429 (мульти-бронь 2/2).
+- `POST /api/marketplace/response` — обратный канал Vitrina→Hub (HMAC).
+- UI «Мои запросы» на `/m/[slug]`.
+- Тест: `npm run test:marketplace-m4d`.
+
+Документация: `docs/TZ-Marketplace-Request-V2.md`.
 
 ---
 

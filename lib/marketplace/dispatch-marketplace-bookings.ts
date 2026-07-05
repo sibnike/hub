@@ -81,6 +81,8 @@ export async function dispatchMarketplaceBookings(
           requesterName: input.requesterName,
           requesterContact: input.requesterContact,
         }),
+        sourceType: 'marketplace',
+        requesterTenantId: input.requesterTenantId,
         metadata: {
           source_type: 'marketplace',
           source_partner: input.marketplaceSlug,

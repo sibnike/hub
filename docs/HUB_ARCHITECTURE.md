@@ -110,9 +110,18 @@ Auth посетителя — отдельный signed JWT cookie на 90 дн�
 - API (все с гейтом approved): `GET .../presets`, `POST .../search/parse`, `POST .../search/results`,
   `POST .../search/book`.
 - Бронирование: `dispatchMarketplaceBookings()` → Vitrina ingest HMAC (`VITRINA_SUBMISSIONS_INGEST_SECRET`).
-  Metadata: `source_type=marketplace`, `source_partner=<slug>`, `requester_tenant_id` (TODO: колонка в Vitrina — M4d).
-  Фактический `submissions.source_type` от ingest hub = `hub` до доработки Vitrina.
+  Тело ingest: `source_type='marketplace'`, `requester_tenant_id` (колонки Vitrina V-31).
+  Throttle 400ms между вызовами на tenant + retry backoff на 429.
 - Platform admin: `/admin/marketplace/[slug]/presets` — CRUD пресетов.
+
+### Запрос v2 маркетплейса (H-M4d)
+
+- Расширение `hub.marketplace_requests`: `budget_amount`, `budget_currency`, `requester_tenant_id`, `marketplace_id`.
+- Расширение `hub.marketplace_request_targets`: `response_status` (pending/accepted/declined/expired).
+- RLS: заказчик (`requester_tenant_id` + `is_tenant_admin`) видит свои requests/targets; platform admin — всё; anon — нет.
+- В guided-флоу M4c: «Отправить запрос» с бюджетом → `POST .../search/request` → N targets → ingest с `marketplace_request_target_id`.
+- Обратный канал: `POST /api/marketplace/response` (HMAC `VITRINA_WEBHOOK_SECRET`) → update target → email requester admins.
+- UI: вкладка «Мои запросы» на `/m/[slug]` — статусы ответов по таргетам.
 
 
 - **`hub.event_visitor_tiers`** — типы посетителей события (event_id, slug, name i18n,

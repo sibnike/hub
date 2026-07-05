@@ -1,14 +1,23 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { dispatchMarketplaceRequest } from '@/lib/marketplace/dispatch-marketplace-request'
-import { matchRequestTenants } from '@/lib/marketplace/match-request-tenants'
-import { parseMarketplaceRequest } from '@/lib/marketplace/parse-marketplace-request'
+import { dispatchMarketplaceRequestV2 } from '@/lib/marketplace/dispatch-marketplace-request-v2'
 import type {
-  CreateMarketplaceRequestInput,
-  CreateMarketplaceRequestResult,
+  CreateMarketplaceRequestV2Input,
+  CreateMarketplaceRequestV2Result,
   MarketplaceRequestParsed,
   MarketplaceRequestRow,
   MarketplaceRequestTargetRow,
 } from '@/types/marketplace-request'
+import type { GuidedSearchParams } from '@/types/marketplace-guided-search'
+
+function paramsToParsed(params: GuidedSearchParams): MarketplaceRequestParsed {
+  const dateFrom = params.date_from
+  return {
+    search: params.search,
+    requested_date: dateFrom,
+    quantity: params.people != null ? String(params.people) : null,
+    requester_proposed_price: null,
+  }
+}
 
 function toRequestRow(row: Record<string, unknown>): MarketplaceRequestRow {
   return {
@@ -64,27 +73,33 @@ function toTargetRow(row: Record<string, unknown>): MarketplaceRequestTargetRow 
   }
 }
 
-export async function createMarketplaceRequest(
-  input: CreateMarketplaceRequestInput,
-  options?: { parsed?: MarketplaceRequestParsed; parsedByAi?: boolean }
-): Promise<CreateMarketplaceRequestResult> {
-  const name = input.requester_name.trim()
-  const contact = input.requester_contact.trim()
+export async function createMarketplaceRequestV2(
+  input: CreateMarketplaceRequestV2Input
+): Promise<CreateMarketplaceRequestV2Result> {
   const text = input.request_text.trim()
-
-  if (!name || !contact || !text) {
-    throw new Error('requester_name, requester_contact и request_text обязательны')
+  if (!text) {
+    throw new Error('request_text обязателен')
   }
 
-  let parsed = options?.parsed
-  let parsedByAi = options?.parsedByAi ?? false
-
-  if (!parsed) {
-    parsed = await parseMarketplaceRequest(text)
-    parsedByAi = true
+  if (!Number.isFinite(input.budget_amount) || input.budget_amount <= 0) {
+    throw new Error('budget_amount must be positive')
   }
 
-  const matched = await matchRequestTenants(parsed, input.target_limit)
+  const uniqueTargets = new Map<string, (typeof input.targets)[number]>()
+  for (const target of input.targets) {
+    if (!target.tenant_id || !target.tenant_slug) continue
+    if (!uniqueTargets.has(target.tenant_id)) {
+      uniqueTargets.set(target.tenant_id, target)
+    }
+  }
+
+  const targets = [...uniqueTargets.values()]
+  if (!targets.length) {
+    throw new Error('No valid targets')
+  }
+
+  const parsed = paramsToParsed(input.params)
+  parsed.requester_proposed_price = input.budget_amount
 
   const supabase = createAdminClient()
 
@@ -92,11 +107,15 @@ export async function createMarketplaceRequest(
     .schema('hub')
     .from('marketplace_requests')
     .insert({
-      requester_name: name,
-      requester_contact: contact,
+      requester_name: input.requester_name.trim(),
+      requester_contact: input.requester_contact.trim(),
       request_text: text,
       ai_parsed: parsed,
       status: 'open',
+      budget_amount: input.budget_amount,
+      budget_currency: input.budget_currency,
+      requester_tenant_id: input.requester_tenant_id,
+      marketplace_id: input.marketplace_id,
     })
     .select()
     .single()
@@ -107,22 +126,11 @@ export async function createMarketplaceRequest(
 
   const request = toRequestRow(requestData as Record<string, unknown>)
 
-  if (!matched.length) {
-    return {
-      request,
-      targets: [],
-      matched_count: 0,
-      parsed,
-      parsed_by_ai: parsedByAi,
-      dispatched_count: 0,
-      dispatch_results: [],
-    }
-  }
-
-  const targetRows = matched.map((m) => ({
+  const targetRows = targets.map((t) => ({
     request_id: request.id,
-    tenant_id: m.tenant_id,
+    tenant_id: t.tenant_id,
     status: 'sent' as const,
+    response_status: 'pending' as const,
   }))
 
   const { data: targetsData, error: targetsError } = await supabase
@@ -135,28 +143,29 @@ export async function createMarketplaceRequest(
     throw new Error(targetsError.message)
   }
 
-  const targets = (targetsData ?? []).map((r) =>
+  const targetRecords = (targetsData ?? []).map((r) =>
     toTargetRow(r as Record<string, unknown>)
   )
 
-  const dispatch = await dispatchMarketplaceRequest({
+  const dispatch = await dispatchMarketplaceRequestV2({
     request,
-    targets,
-    matched,
-    parsed,
+    targets: targetRecords,
+    candidates: targets,
+    params: input.params,
+    marketplaceSlug: input.marketplace_slug,
+    requesterTenantId: input.requester_tenant_id,
+    budgetAmount: input.budget_amount,
+    budgetCurrency: input.budget_currency,
   })
 
   return {
     request,
-    targets: targets.map((target) => {
+    targets: targetRecords.map((target) => {
       const sent = dispatch.results.find((r) => r.target_id === target.id)
       return sent?.vitrina_submission_id
         ? { ...target, vitrina_submission_id: sent.vitrina_submission_id }
         : target
     }),
-    matched_count: matched.length,
-    parsed,
-    parsed_by_ai: parsedByAi,
     dispatched_count: dispatch.dispatched_count,
     dispatch_results: dispatch.results,
   }

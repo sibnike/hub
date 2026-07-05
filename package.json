@@ -13,6 +13,7 @@
     "test:marketplace-search": "node scripts/test-marketplace-search.mjs",
     "test:marketplace-m4b": "node scripts/test-marketplace-m4b.mjs",
     "test:marketplace-m4c": "node scripts/test-marketplace-m4c.mjs",
+    "test:marketplace-m4d": "node scripts/test-marketplace-m4d.mjs",
     "db:reset:local": "node scripts/db-reset-local.mjs"
   },
   "dependencies": {

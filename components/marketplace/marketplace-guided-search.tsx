@@ -23,13 +23,26 @@ import type {
   MarketplaceListingOffer,
   SearchPresetRow,
 } from '@/types/marketplace-guided-search'
+import type { DispatchTargetResult } from '@/types/marketplace-request'
 import type { OrganizerTenant } from '@/types/hub-event'
+import { MarketplaceMyRequests } from '@/components/marketplace/marketplace-my-requests'
 
 const vitrinaBase =
   process.env.NEXT_PUBLIC_VITRINA_PUBLIC?.replace(/\/$/, '') ??
   'https://vitrina.yanbada.com'
 
-type Step = 'preset' | 'city' | 'text' | 'summary' | 'clarify' | 'results' | 'booked'
+type Step =
+  | 'preset'
+  | 'city'
+  | 'text'
+  | 'summary'
+  | 'clarify'
+  | 'results'
+  | 'booked'
+  | 'request_form'
+  | 'requested'
+
+type HubView = 'search' | 'requests'
 
 type MarketplaceGuidedSearchProps = {
   marketplace: HubMarketplace
@@ -86,6 +99,11 @@ export function MarketplaceGuidedSearch({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bookResults, setBookResults] = useState<BookingDispatchResult[]>([])
+  const [hubView, setHubView] = useState<HubView>('search')
+  const [budgetAmount, setBudgetAmount] = useState('')
+  const [budgetCurrency, setBudgetCurrency] = useState('KZT')
+  const [requestMessage, setRequestMessage] = useState('')
+  const [requestResults, setRequestResults] = useState<DispatchTargetResult[]>([])
 
   const loadPresets = useCallback(async () => {
     setLoading(true)
@@ -260,6 +278,55 @@ export function MarketplaceGuidedSearch({
     }
   }
 
+  function openRequestForm() {
+    setRequestMessage(queryText || params.notes || '')
+    setStep('request_form')
+  }
+
+  async function sendRequestToTargets() {
+    const amount = Number(budgetAmount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError('Укажите корректный бюджет')
+      return
+    }
+    const text = requestMessage.trim()
+    if (!text) {
+      setError('Укажите текст запроса')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/marketplace/${marketplace.slug}/search/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          params: { ...params, notes: text },
+          request_text: text,
+          budget_amount: amount,
+          budget_currency: budgetCurrency,
+          offers: results,
+          target_limit: 10,
+        }),
+      })
+      const json = (await res.json()) as {
+        error?: string
+        dispatch_results?: DispatchTargetResult[]
+      }
+      if (!res.ok) {
+        setError(json.error ?? 'Ошибка отправки запроса')
+        return
+      }
+      setRequestResults(json.dispatch_results ?? [])
+      setStep('requested')
+    } catch {
+      setError('Ошибка сети')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 md:px-6 md:py-14">
       <Link
@@ -277,7 +344,30 @@ export function MarketplaceGuidedSearch({
         <p className="mt-2 text-sm text-[var(--muted)]">
           Тенант: <span className="text-foreground">{tenant.name}</span>
         </p>
+        <div className="mt-4 flex gap-2">
+          <Button
+            size="sm"
+            variant={hubView === 'search' ? 'default' : 'outline'}
+            onClick={() => setHubView('search')}
+          >
+            Поиск
+          </Button>
+          <Button
+            size="sm"
+            variant={hubView === 'requests' ? 'default' : 'outline'}
+            onClick={() => setHubView('requests')}
+          >
+            Мои запросы
+          </Button>
+        </div>
       </header>
+
+      {hubView === 'requests' ? (
+        <MarketplaceMyRequests marketplaceSlug={marketplace.slug} />
+      ) : null}
+
+      {hubView === 'search' ? (
+        <>
 
       {error ? (
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -494,6 +584,23 @@ export function MarketplaceGuidedSearch({
             </div>
           ) : null}
 
+          {results.length > 0 ? (
+            <div className="mb-4 rounded-xl border border-border bg-card p-4">
+              <p className="text-sm text-[var(--muted)]">
+                Или отправьте запрос всем подходящим исполнителям с указанием бюджета
+              </p>
+              <Button
+                className="mt-2"
+                size="sm"
+                variant="outline"
+                disabled={loading}
+                onClick={openRequestForm}
+              >
+                Отправить запрос
+              </Button>
+            </div>
+          ) : null}
+
           <ul className="space-y-4">
             {results.map((offer) => {
               const titleText = getI18nText(offer.title, 'ru', offer.page_slug)
@@ -612,6 +719,89 @@ export function MarketplaceGuidedSearch({
             Новый поиск
           </Button>
         </section>
+      ) : null}
+
+      {step === 'request_form' ? (
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-medium">Запрос исполнителям</h2>
+          <div className="space-y-4">
+            <label className="block text-sm">
+              <span className="text-[var(--muted)]">Сообщение</span>
+              <textarea
+                className="mt-1 min-h-[100px] w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={requestMessage}
+                onChange={(e) => setRequestMessage(e.target.value)}
+              />
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <label className="block text-sm">
+                <span className="text-[var(--muted)]">Бюджет</span>
+                <input
+                  type="number"
+                  min={1}
+                  className="mt-1 w-40 rounded-md border bg-background px-3 py-2 text-sm"
+                  value={budgetAmount}
+                  onChange={(e) => setBudgetAmount(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-[var(--muted)]">Валюта</span>
+                <select
+                  className="mt-1 rounded-md border bg-background px-3 py-2 text-sm"
+                  value={budgetCurrency}
+                  onChange={(e) => setBudgetCurrency(e.target.value)}
+                >
+                  <option value="KZT">KZT</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </label>
+            </div>
+            <p className="text-xs text-[var(--muted)]">
+              Будет отправлено уникальным исполнителям из выдачи ({results.length} предложений)
+            </p>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Button disabled={loading} onClick={() => void sendRequestToTargets()}>
+              Отправить запрос
+            </Button>
+            <Button variant="ghost" onClick={() => setStep('results')}>
+              Назад
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {step === 'requested' ? (
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <CheckCircleIcon size={20} className="text-[var(--accent)]" />
+            <h2 className="text-lg font-medium">Запрос отправлен</h2>
+          </div>
+          <ul className="space-y-2 text-sm">
+            {requestResults.map((r) => (
+              <li key={r.target_id} className="rounded-lg border border-border px-3 py-2">
+                <span className="font-medium">{r.tenant_slug ?? r.tenant_id}</span>
+                {' — '}
+                {r.ok ? (
+                  <span className="text-[var(--accent)]">отправлено</span>
+                ) : (
+                  <span className="text-destructive">{r.error ?? 'ошибка'}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex gap-2">
+            <Button onClick={() => { setHubView('requests'); setStep('preset') }}>
+              Мои запросы
+            </Button>
+            <Button variant="ghost" onClick={() => setStep('preset')}>
+              Новый поиск
+            </Button>
+          </div>
+        </section>
+      ) : null}
+        </>
       ) : null}
     </div>
   )

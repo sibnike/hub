@@ -6,45 +6,42 @@ import {
 import { getHubMarketplaceSourceUrl } from '@/lib/integrations/vitrina-ingest'
 import type {
   DispatchTargetResult,
-  MarketplaceRequestParsed,
   MarketplaceRequestRow,
+  MarketplaceRequestTargetCandidate,
   MarketplaceRequestTargetRow,
-  MatchedRequestTenant,
 } from '@/types/marketplace-request'
+import type { GuidedSearchParams } from '@/types/marketplace-guided-search'
 
-export type DispatchMarketplaceRequestResult = {
-  dispatched_count: number
-  results: DispatchTargetResult[]
-}
-
-export async function dispatchMarketplaceRequest(input: {
+export type DispatchMarketplaceRequestV2Input = {
   request: MarketplaceRequestRow
   targets: MarketplaceRequestTargetRow[]
-  matched: MatchedRequestTenant[]
-  parsed: MarketplaceRequestParsed | null
-}): Promise<DispatchMarketplaceRequestResult> {
-  if (!input.targets.length) {
-    return { dispatched_count: 0, results: [] }
-  }
+  candidates: MarketplaceRequestTargetCandidate[]
+  params: GuidedSearchParams
+  marketplaceSlug: string
+  requesterTenantId: string
+  budgetAmount: number
+  budgetCurrency: string
+}
 
+export async function dispatchMarketplaceRequestV2(
+  input: DispatchMarketplaceRequestV2Input
+): Promise<{ dispatched_count: number; results: DispatchTargetResult[] }> {
   const slugByTenant = new Map(
-    input.matched.map((m) => [m.tenant_id, m.tenant_slug])
+    input.candidates.map((c) => [c.tenant_id, c.tenant_slug])
+  )
+  const metaByTenant = new Map(
+    input.candidates.map((c) => [c.tenant_id, c])
   )
 
-  const fields = buildMarketplaceSubmissionFields({
-    requesterName: input.request.requester_name,
-    requesterContact: input.request.requester_contact,
-    requestText: input.request.request_text,
-    parsed: input.parsed,
-  })
-
   const sourceUrl = getHubMarketplaceSourceUrl()
+  const hubBase = sourceUrl.replace(/\/marketplace$/, '')
   const supabase = createAdminClient()
   const results: DispatchTargetResult[] = []
   let dispatchedCount = 0
 
   for (const target of input.targets) {
     const tenantSlug = slugByTenant.get(target.tenant_id) ?? null
+    const candidate = metaByTenant.get(target.tenant_id)
 
     if (!tenantSlug) {
       results.push({
@@ -58,20 +55,47 @@ export async function dispatchMarketplaceRequest(input: {
     }
 
     try {
+      const fields = buildMarketplaceSubmissionFields({
+        requesterName: input.request.requester_name,
+        requesterContact: input.request.requester_contact,
+        requestText: input.request.request_text,
+        parsed: input.request.ai_parsed,
+        budgetAmount: input.budgetAmount,
+        budgetCurrency: input.budgetCurrency,
+        marketplaceRequestTargetId: target.id,
+      })
+
+      if (input.params.city) {
+        fields.push({ key: 'city', label: 'Город', value: input.params.city })
+      }
+
+      if (candidate?.page_slug) {
+        fields.push({ key: 'page_slug', label: 'Страница', value: candidate.page_slug })
+      }
+
+      if (candidate?.title) {
+        fields.push({ key: 'listing_title', label: 'Предложение', value: candidate.title })
+      }
+
       const vitrina = await createVitrinaHubSubmission({
-        externalId: `mkt-${target.id}`,
+        externalId: `mkt-req-${target.id}`,
         tenantSlug,
         title: 'Запрос с маркетплейса Yanbada',
         fields,
         sourceType: 'marketplace',
-        requesterTenantId: input.request.requester_tenant_id ?? undefined,
+        requesterTenantId: input.requesterTenantId,
         marketplaceRequestTargetId: target.id,
         metadata: {
           source_type: 'marketplace',
+          source_partner: input.marketplaceSlug,
+          requester_tenant_id: input.requesterTenantId,
+          marketplace_slug: input.marketplaceSlug,
+          marketplace_request_target_id: target.id,
           hub_request_id: input.request.id,
           hub_target_id: target.id,
-          marketplace_request_target_id: target.id,
-          source_url: sourceUrl,
+          listing_id: candidate?.listing_id ?? null,
+          page_slug: candidate?.page_slug ?? null,
+          source_url: `${hubBase}/m/${input.marketplaceSlug}`,
         },
       })
 
@@ -96,7 +120,7 @@ export async function dispatchMarketplaceRequest(input: {
       })
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Dispatch failed'
-      console.error('[dispatchMarketplaceRequest]', target.id, message)
+      console.error('[dispatchMarketplaceRequestV2]', target.id, message)
       results.push({
         target_id: target.id,
         tenant_id: target.tenant_id,
