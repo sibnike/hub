@@ -77,16 +77,12 @@ BEGIN
     l.price_currency,
     l.synced_at,
     CASE
-      WHEN v_query IS NOT NULL THEN ts_rank(l.search_vector, v_query)
+      WHEN v_query IS NOT NULL AND l.search_vector @@ v_query THEN ts_rank(l.search_vector, v_query)
       ELSE 0::real
     END AS rank
   FROM hub.listing_cache l
   WHERE
     (
-      v_query IS NULL
-      OR l.search_vector @@ v_query
-    )
-    AND (
       p_marketplace_themes IS NULL
       OR cardinality(p_marketplace_themes) = 0
       OR l.marketplace_themes && p_marketplace_themes
