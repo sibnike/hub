@@ -1,6 +1,6 @@
 # ROADMAP — Exhibitor Hub, следующие фазы
 
-Статус: на проде H-0...H-10 включительно; Marketplace Механики 1, 2 и 3a — **shipped** (prod, сквозной прогон через Supabase MCP).
+Статус: на проде H-0...H-10 включительно; Marketplace Механики 1, 2, 3a и H-M4a...H-M4d — **shipped**.
 
 Базовый поток выставки работает end-to-end:
 - Организатор создаёт событие, добавляет участников, расставляет стенды на карте, генерирует QR
@@ -36,13 +36,16 @@ Framer Motion анимации, скелетоны вместо спиннеро
 | **1** — AI-поиск тенанта | ✅ shipped (H-M1) | `hub.company_cache` + FTS + `/api/marketplace/search` |
 | **2** — AI-поиск услуг/page | ✅ shipped (H-M2) | `hub.listing_cache` + sync listing + единая лента на `/marketplace` |
 | **3a** — запрос внешнего заявителя | ✅ shipped (H-M3a) | Hub → Vitrina ingest → `public.submissions` + `vitrina_submission_id` на target |
+| **H-M4a** — мульти-маркетплейс | ✅ shipped | `20260705134146_marketplace_multitenant_m4a`, prod E2E 14/14 |
+| **H-M4b** — membership + gate | ✅ shipped | `20260705201000_marketplace_members_m4b`, access gate и platform admin |
+| **H-M4c** — guided-поиск + мульти-бронь | ✅ shipped | `20260705213000_marketplace_search_presets_m4c` + `20260705214500_marketplace_search_listings_fix_m4c` |
+| **H-M4d** — запрос v2 + обратный канал | ✅ shipped | `20260705230000_marketplace_request_v2_m4d`; prod E2E 17/19 из-за Vitrina 429 rate-limit |
 
-Все три подтверждены реальным сквозным прогоном на prod (HTTP + сверка в Supabase MCP).
+M1/M2/M3a подтверждены реальным сквозным прогоном на prod (HTTP + сверка в Supabase MCP). M4a...M4d развернуты на prod и сверены через `migration list --linked`; для M4d HMAC/secret исправлены, но dispatch/multi-book до финального rate-limit фикса в Vitrina может упираться в `Too many requests`.
 
 **Отложено — отдельные будущие задачи, не сделаны:**
 
-- **Обратный канал** тенант → заявитель (webhook Vitrina → Hub при ответе на submission).
-- **Поток 3b** — внутренние B2B-запросы тенанта (результат в `booking_resources` / кросс-тенантное бронирование).
+- **Поток 3b** — встраивание забронированного исполнителя из маркетплейса в собственные `booking_resources` / `booking_assignments` заказчика. После базового маркетплейса (M4a–M4d). Не начато.
 - **Адресация на уровне сотрудника** (v1 = тенант целиком; персональный исполнитель — отдельная итерация).
 
 Не входит в Marketplace: embedding-поиск; `hub.meeting_requests` (см. фазу H-11).
@@ -133,7 +136,7 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 ---
 
-## Marketplace — H-M4c: guided-поиск (пресеты + AI + выдача + мульти-бронь)
+## Marketplace — H-M4c: guided-поиск (пресеты + AI + выдача + мульти-бронь) ✅ shipped
 
 Реализовано (H-M4c), миграция `20260705213000_marketplace_search_presets_m4c` (дубль в vitrina):
 
@@ -147,24 +150,32 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 **Ограничение v1:** UI accept/decline в Vitrina inbox — V-32 (отдельный агент vitrina). Hub-эндпоинт response готов.
 
-**Следующие фазы:** после M4d — поток 3b, платежи/escrow.
+**Следующие фазы:** после базового маркетплейса (M4a–M4d) — поток 3b, платежи/escrow.
 
 Документация: `docs/TZ-Marketplace-Search-Flow.md`.
 
 ---
 
-## Marketplace — H-M4d: запрос v2 (бюджет + accept/decline + обратный канал)
+## Marketplace — H-M4d: запрос v2 (бюджет + accept/decline + обратный канал) ✅ shipped
 
 Реализовано (H-M4d), миграция `20260705230000_marketplace_request_v2_m4d` (дубль в vitrina):
 
 - Budget + `requester_tenant_id` на `marketplace_requests`; `response_status` на targets.
 - Guided-флоу: «Отправить запрос» с бюджетом → multi-target ingest (`source_type=marketplace`).
-- Ingest throttle 400ms/tenant + retry backoff на 429 (мульти-бронь 2/2).
+- Ingest throttle/retry есть, secret синхронизирован с Vitrina prod; текущий prod E2E после redeploy: 17/19, два падения на Vitrina `Too many requests` (dispatch 1/2 и multi-book 1/2). До фикса rate-limit/backoff на Vitrina повторять E2E после cooldown.
 - `POST /api/marketplace/response` — обратный канал Vitrina→Hub (HMAC).
 - UI «Мои запросы» на `/m/[slug]`.
 - Тест: `npm run test:marketplace-m4d`.
 
 Документация: `docs/TZ-Marketplace-Request-V2.md`.
+
+---
+
+## Marketplace — будущая фаза: Поток 3b (не начато)
+
+Поток 3b — встраивание забронированного исполнителя из маркетплейса в собственные `booking_resources` / `booking_assignments` заказчика.
+
+Статус: будущая фаза после базового маркетплейса (M4a–M4d). Не начато.
 
 ---
 

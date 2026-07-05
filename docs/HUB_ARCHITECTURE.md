@@ -148,6 +148,43 @@ Auth посетителя — отдельный signed JWT cookie на 90 дн�
 
 Cross-schema запросы (`hub.*` ↔ `public.tenants`) — через ручной JOIN `joinTenants()` в `lib/hub/`. PostgREST embed не работает между схемами.
 
+### Prod/shared migrations ledger
+
+Prod Supabase общий с Vitrina. Version id в `schema_migrations` должен совпадать с timestamp из имени файла и быть уникальным во всём shared DB.
+
+| Version id | Файл | Область |
+|------------|------|---------|
+| `20260603120001` | `20260603120001_hub_schema.sql` | базовая схема `hub` |
+| `20260603120002` | `20260603120002_hub_schema_grants.sql` | grants/RLS helpers |
+| `20260603120005` | `20260603120005_participations_invited_email.sql` | invited email для participations |
+| `20260603120006` | `20260603120006_event_maps_rls.sql` | слот 20006, RLS для event maps |
+| `20260603120007` | `20260603120007_event_track_events.sql` | слот 20007, track events |
+| `20260603120008` | `20260603120008_events_custom_domain.sql` | слот 20008, custom domain |
+| `20260603120009` | `20260603120009_hub_rls_fix.sql` | слот 20009, RLS recursion fix |
+| `20260603120010` | `20260603120010_visitor_guide.sql` | слот 20010, visitor guide |
+| `20260630102157` | `20260630102157_marketplace_tenant_search.sql` | Marketplace M1: tenant search |
+| `20260630120257` | `20260630120257_marketplace_listing_search.sql` | Marketplace M2: listing search |
+| `20260630141012` | `20260630141012_marketplace_request.sql` | Marketplace M3a: request/targets |
+| `20260630141559` | `20260630141559_marketplace_request_rls_fix.sql` | Marketplace M3a RLS fix |
+| `20260630141627` | `20260630141627_marketplace_request_revoke_writes.sql` | Marketplace M3a revoke writes |
+| `20260705134146` | `20260705134146_marketplace_multitenant_m4a.sql` | Marketplace H-M4a |
+| `20260705201000` | `20260705201000_marketplace_members_m4b.sql` | Marketplace H-M4b |
+| `20260705213000` | `20260705213000_marketplace_search_presets_m4c.sql` | Marketplace H-M4c |
+| `20260705214500` | `20260705214500_marketplace_search_listings_fix_m4c.sql` | Marketplace H-M4c prod fix |
+| `20260705230000` | `20260705230000_marketplace_request_v2_m4d.sql` | Marketplace H-M4d |
+
+Исторические имена с `2025...` не использовать: все hub timestamps приведены к `2026...`. Слоты `20260603120006`–`20260603120010` заняты как указано выше.
+
+Связанные prod-соседи из Vitrina, важные для проверки дублей:
+
+| Version id | Файл | Область |
+|------------|------|---------|
+| `20260705135638` | Vitrina themes markup | V-30 для M4a |
+| `20260705220000` | `20260705220000_submissions_marketplace_requester.sql` | V-31, занят в prod |
+| `20260705232000` | Vitrina response channel | V-32 |
+
+После сессии `npx supabase migration list --linked` из `vitrina` показывает `local = remote` для `20260705220000`, `20260705230000`, `20260705232000`; дублей, local-only и remote-only нет.
+
 ## 4. Структура роутов
 
 ```

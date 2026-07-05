@@ -6,12 +6,13 @@
  * Env for prod E2E (optional):
  *   QA_SANDBOX_EMAIL, QA_SANDBOX_PASSWORD — tenant A (qa-sandbox)
  *   QA_BUYER_EMAIL, QA_BUYER_PASSWORD — tenant B (qa-buyer)
- *   QA_PLATFORM_EMAIL, QA_PLATFORM_PASSWORD — platform admin
+ *   QA_PLATFORM_EMAIL, QA_PLATFORM_PASSWORD — platform admin (qa-platform@vitrina.test)
  */
 
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { assertQaCreds } from './lib/qa-env-guard.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const hubRoot = resolve(__dirname, '..')
@@ -30,6 +31,7 @@ function loadEnv(path) {
 }
 
 loadEnv(resolve(hubRoot, '.env.local'))
+assertQaCreds()
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

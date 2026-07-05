@@ -8,6 +8,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { createHmac } from 'node:crypto'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { assertQaEmail } from './lib/qa-env-guard.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const hubRoot = resolve(__dirname, '..')
@@ -26,6 +27,8 @@ function loadEnv(path) {
 }
 
 loadEnv(resolve(hubRoot, '.env.local'))
+assertQaEmail('QA_BUYER_EMAIL')
+assertQaEmail('QA_SANDBOX_EMAIL')
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

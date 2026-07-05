@@ -159,19 +159,6 @@ async function main() {
   )
   console.log('qa-buyer staff rows:', Array.isArray(staff) ? staff.length : 0)
 
-  const { json: platformAdmins } = await rest('/rest/v1/platform_admins?select=user_id&limit=1')
-  const platformUserId = platformAdmins?.[0]?.user_id
-  const { json: platformUser } = await authAdmin(`/users/${platformUserId}`)
-  const platformEmail = platformUser?.email
-  if (!platformEmail) throw new Error('platform admin email missing')
-
-  const platformPassword = process.env.QA_PLATFORM_PASSWORD || 'vitrina-qa-platform-e2e'
-  await authAdmin(`/users/${platformUserId}`, {
-    method: 'PUT',
-    body: JSON.stringify({ password: platformPassword, email_confirm: true }),
-  })
-  console.log('platform admin password set for:', platformEmail)
-
   let env = readFileSync(resolve(hubRoot, '.env.local'), 'utf8')
   env = upsertEnvLine(env, 'QA_SANDBOX_EMAIL', QA.sandbox.email)
   env = upsertEnvLine(env, 'QA_SANDBOX_PASSWORD', QA.sandbox.password)
@@ -179,13 +166,12 @@ async function main() {
   env = upsertEnvLine(env, 'QA_BUYER_EMAIL', QA.buyer.email)
   env = upsertEnvLine(env, 'QA_BUYER_PASSWORD', QA.buyer.password)
   env = upsertEnvLine(env, 'QA_BUYER_TENANT_ID', buyerTenantId)
-  env = upsertEnvLine(env, 'QA_PLATFORM_EMAIL', platformEmail)
-  env = upsertEnvLine(env, 'QA_PLATFORM_PASSWORD', platformPassword)
 
   writeFileSync(resolve(hubRoot, '.env.local'), env.trim() + '\n')
 
   console.log('ENV_UPDATED')
-  console.log(JSON.stringify({ buyerTenantId, platformEmail }, null, 2))
+  console.log(JSON.stringify({ buyerTenantId }, null, 2))
+  console.log('Run scripts/setup-qa-platform.mjs for QA_PLATFORM_* creds')
 }
 
 main().catch((e) => {

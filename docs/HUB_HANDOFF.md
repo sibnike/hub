@@ -3,8 +3,8 @@
 ## Что скинуть в новый чат
 
 Обязательно:
-1. `docs/ARCHITECTURE.md`
-2. `docs/ROADMAP-next.md`
+1. `docs/HUB_ARCHITECTURE.md`
+2. `docs/HUB_ROADMAP-next.md`
 3. `docs/DESIGN.md`
 
 По необходимости:
@@ -20,12 +20,18 @@
 - **Миграции prod (shared Supabase с Vitrina):**
   - **Нельзя** применять hub-DDL через Supabase MCP `apply_migration` — MCP ставит auto-timestamp,
     version id не совпадает с именем файла в git → orphan в `schema_migrations`, ломает `db:push:prod`.
+  - Version id должен быть уникальным во всём shared DB и равен timestamp из имени `.sql`.
+    Если слот занят в Vitrina/prod — переименовать файл в `mega-hub` и дубль в `vitrina` до применения/repair.
   - **Предпочтительно:** файл в `vitrina/supabase/migrations/` (+ зеркало здесь в
     `mega-hub/supabase/migrations/`) → из **vitrina**:
     `CONFIRM_PROD_DB_PUSH=1 npm run db:push:prod`.
   - **Если SQL уже выполнен вручную:** тот же DDL + ручной INSERT в
     `supabase_migrations.schema_migrations` с `version = <timestamp из имени файла>` (не MCP).
   - После нестандартного пути — `npx supabase migration list --linked` (из vitrina) и repair/rename.
+    Проверить отсутствие дублей, `local-only` и `remote-only`.
+  - Текущий конфликт зафиксирован: `20260705220000` занят V-31
+    (`submissions_marketplace_requester`), H-M4d перенесён на
+    `20260705230000_marketplace_request_v2_m4d`.
 - ENV изменения требуют Redeploy
 
 ## Текущий статус (на момент закрытия чата)
@@ -52,7 +58,8 @@ Hub работает в связке с Vitrina (`admin.yanbada.com`):
 ## Стартовая фраза для нового чата
 
 > Продолжаем проект Exhibitor Hub. Прикладываю `ARCHITECTURE.md`, `ROADMAP-next.md`, `DESIGN.md`.
-> На проде H-0...H-10 включительно, базовый поток выставки работает end-to-end,
+> На проде H-0...H-10 и Marketplace M1/M2/M3a/H-M4a...H-M4d включительно,
+> базовый поток выставки работает end-to-end,
 > гайд посетителя с регистрацией и дизайн-системой запущен.
 > Hub интегрирован с Vitrina через webhook + общий Supabase + ?embed=1.
 > Хочу взять [фазу H-N] из роадмапа. Пиши ТЗ в `docs/` и промпт в `tasks/`, как обычно.
@@ -87,8 +94,21 @@ npx supabase migration list --linked
 NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=.yanbada.com
 SESSION_SIGNING_SECRET                          # JWT для visitor_session
 VITRINA_WEBHOOK_SECRET                          # shared с Vitrina
+VITRINA_SUBMISSIONS_INGEST_SECRET               # shared HMAC для Hub → Vitrina submissions ingest
 HUB_WEBHOOK_URL (в Vitrina env)
 RESEND_API_KEY
 RESEND_FROM_EMAIL=Yanbada Hub <hub@yanbada.com>
 ```
+
+## E2E / QA-аккаунты
+
+Prod E2E (`scripts/test-marketplace-*.mjs`) — **только** выделенные `@vitrina.test` аккаунты
+из `.env.local` (`QA_SANDBOX_*`, `QA_BUYER_*`, `QA_PLATFORM_*`). Боевые логины, личные
+`@gmail.com` и любые не-`@vitrina.test` адреса в тестах **не использовать**.
+
+Заведение QA:
+- `node scripts/setup-qa-buyer.mjs` — qa-sandbox + qa-buyer
+- `node scripts/setup-qa-platform.mjs` — qa-platform (`platform_admin`)
+
+Скрипты с `signIn` обязаны проверять домен через `scripts/lib/qa-env-guard.mjs`; если добавляется новый prod E2E с логином, сначала подключить этот guard.
 
