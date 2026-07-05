@@ -262,8 +262,8 @@ async function setupListings() {
       action: 'upsert',
       tenant_id: QA_TOUCHIN_TENANT,
       page_slug: 'qa-tourism-touchin-m4d',
-      title: { ru: 'Туры Touchin M4d', en: 'Touchin tours M4d' },
-      short_text: { ru: 'Экскурсии Touchin', en: 'Touchin tours' },
+      title: { ru: 'Туры Алматы Touchin M4d', en: 'Almaty tours Touchin M4d' },
+      short_text: { ru: 'Экскурсии и туры в Алматы', en: 'Tours in Almaty' },
       categories: ['tourism'],
       marketplace_themes: ['tourism', 'accommodation'],
       price_from: 28000,
@@ -382,27 +382,29 @@ async function testE2ERequestFlow() {
 
   if (requestRes.ok && okCount >= 2) {
     pass('2.e2e.request_dispatch', `ok=${okCount}/2`)
+  } else if (createdRequestId && createdTargetIds.length >= 2) {
+    fail('2.e2e.request_dispatch', `ok=${okCount}/2 ${JSON.stringify(dispatchResults)}`)
   } else {
     fail('2.e2e.request_dispatch', `${requestRes.status} ok=${okCount} ${JSON.stringify(dispatchResults)}`)
     return
   }
 
-  const { json: submissions } = await rest(
-    `/rest/v1/submissions?id=in.(${createdSubmissionIds.map((id) => `"${id}"`).join(',')})&select=id,source_type,requester_tenant_id,data`,
-    { headers: { Accept: 'application/json' } }
-  )
+  if (createdSubmissionIds.length >= 2) {
+    const { json: submissions } = await rest(
+      `/rest/v1/submissions?id=in.(${createdSubmissionIds.map((id) => `"${id}"`).join(',')})&select=id,source_type,requester_tenant_id,data`,
+      { headers: { Accept: 'application/json' } }
+    )
 
-  const mktRows = (submissions ?? []).filter((s) => s.source_type === 'marketplace')
-  const withRequester = mktRows.filter((s) => s.requester_tenant_id === QA_BUYER_TENANT)
-  const withBudget = mktRows.filter((s) => {
-    const data = s.data ?? {}
-    return data.proposed_price != null || data.budget_currency != null
-  })
+    const mktRows = (submissions ?? []).filter((s) => s.source_type === 'marketplace')
+    const withRequester = mktRows.filter((s) => s.requester_tenant_id === QA_BUYER_TENANT)
 
-  if (mktRows.length >= 2 && withRequester.length >= 2) {
-    pass('2.e2e.submissions_attribution', `marketplace=${mktRows.length} budget=${withBudget.length}`)
+    if (mktRows.length >= 2 && withRequester.length >= 2) {
+      pass('2.e2e.submissions_attribution', `marketplace=${mktRows.length}`)
+    } else {
+      fail('2.e2e.submissions_attribution', JSON.stringify(submissions))
+    }
   } else {
-    fail('2.e2e.submissions_attribution', JSON.stringify(submissions))
+    skip('2.e2e.submissions_attribution', 'dispatch incomplete — retry after Vitrina cooldown')
   }
 
   if (createdTargetIds.length < 2 || !webhookSecret) {
