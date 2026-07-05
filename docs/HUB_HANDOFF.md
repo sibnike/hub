@@ -16,7 +16,12 @@
 
 - Claude пишет ТЗ в `docs/` и промпт агенту в `tasks/prompt_NN.md`
 - Cursor-агент выполняет, присылает отчёт
-- Деплой: `git push` → Vercel
+- **Деплой (экономия Build CPU Minutes):**
+  - Не деплоить каждый коммит — **коммитить пачкой**, prod-деплой **один раз по готовности фазы**.
+  - Только **git-триггер** (`git push origin main`); **не использовать** ручной `vercel --prod` — дублирует билд и создаёт рассинхрон git↔prod.
+  - Коммиты **только** с `docs/**`, `*.md`, `tasks/**` (без кода/миграций) **деплой не требуют** — Vercel пропустит билд через Ignored Build Step (`scripts/vercel-should-build.sh` в `vercel.json`).
+  - Причина: Build CPU Minutes — основной расход Vercel; лишние билды жгут кредиты.
+  - Исключение: смена ENV на Vercel → один redeploy после push с кодом или вручную через dashboard (не CLI `vercel --prod` из локальной машины).
 - **Миграции prod (shared Supabase с Vitrina):**
   - **Нельзя** применять hub-DDL через Supabase MCP `apply_migration` — MCP ставит auto-timestamp,
     version id не совпадает с именем файла в git → orphan в `schema_migrations`, ломает `db:push:prod`.
