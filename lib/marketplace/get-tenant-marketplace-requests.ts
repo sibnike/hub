@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { MarketplaceRequestListItem } from '@/types/marketplace-request'
 
@@ -6,7 +5,7 @@ export async function getTenantMarketplaceRequests(
   marketplaceId: string,
   requesterTenantId: string
 ): Promise<MarketplaceRequestListItem[]> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: requests, error } = await supabase
     .schema('hub')
@@ -34,9 +33,8 @@ export async function getTenantMarketplaceRequests(
     .in('request_id', requestIds)
 
   const tenantIds = Array.from(new Set((targets ?? []).map((t) => String(t.tenant_id))))
-  const admin = createAdminClient()
   const { data: tenants } = tenantIds.length
-    ? await admin.from('tenants').select('id, name, slug').in('id', tenantIds)
+    ? await supabase.from('tenants').select('id, name, slug').in('id', tenantIds)
     : { data: [] as Array<{ id: string; name: string; slug: string }> }
 
   const tenantById = new Map((tenants ?? []).map((t) => [t.id, t]))
