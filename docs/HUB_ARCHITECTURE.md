@@ -96,7 +96,24 @@ Auth посетителя — отдельный signed JWT cookie на 90 дн�
   status=pending; UPDATE/DELETE — только platform admin. Anon не экспонируется.
 - Хелперы: `lib/marketplace/membership.ts` (`getMembership`, `assertMarketplaceAccess`).
 
-### Гайд посетителя (H-9)
+### Guided-поиск маркетплейса (H-M4c)
+
+- **`hub.search_presets`** — предустановленные запросы (marketplace_id, theme_slug, name/hint_template i18n,
+  required_params jsonb, clarify_hints jsonb, sort_order, is_active). Сиды tourism: accommodation, transport, tourism.
+- RLS: SELECT — authenticated; запись — `is_platform_admin()`. Anon не экспонируется.
+- RPC **`hub.search_marketplace_listings`** — выдача из `listing_cache` с фильтром по theme_slugs маркетплейса,
+  теме пресета и городу (FTS + ILIKE).
+- Флоу на `/m/[slug]` (только approved membership): пресет → город → текст → AI-разбор → уточнения
+  по недостающим `required_params` → выдача с availability (Vitrina `/api/booking/availability`) →
+  сортировка/фильтр по цене → корзина → мульти-бронь.
+- Состояние флоу и корзины — на клиенте (v1 без таблицы корзины в БД).
+- API (все с гейтом approved): `GET .../presets`, `POST .../search/parse`, `POST .../search/results`,
+  `POST .../search/book`.
+- Бронирование: `dispatchMarketplaceBookings()` → Vitrina ingest HMAC (`VITRINA_SUBMISSIONS_INGEST_SECRET`).
+  Metadata: `source_type=marketplace`, `source_partner=<slug>`, `requester_tenant_id` (TODO: колонка в Vitrina — M4d).
+  Фактический `submissions.source_type` от ingest hub = `hub` до доработки Vitrina.
+- Platform admin: `/admin/marketplace/[slug]/presets` — CRUD пресетов.
+
 
 - **`hub.event_visitor_tiers`** — типы посетителей события (event_id, slug, name i18n,
   description i18n, color, welcome_bonus int, is_default bool, sort_order).
@@ -167,17 +184,25 @@ app/
 │   └── map/                              fallback заглушка с брендингом
 │
 ├── marketplace/                          AI-поиск и запросы (механики 1–3a)
-├── m/[marketplaceSlug]/                  тематический маркетплейс (H-M4b: гейт по membership)
+├── m/[marketplaceSlug]/                  тематический маркетплейс (H-M4b: гейт; H-M4c: guided-поиск)
 ├── admin/marketplace/[slug]/members/     platform admin: заявки на доступ
+├── admin/marketplace/[slug]/presets/     platform admin: пресеты guided-поиска
 │
 └── api/
     ├── sync/company/                     webhook от Vitrina → company_cache (+ marketplace_themes)
     ├── sync/listing/                     webhook от Vitrina → listing_cache (+ themes, price)
     ├── marketplace/[slug]/
     │   ├── membership/                   GET статус членства активного тенанта
-    │   └── membership/request/           POST подать/повторить заявку
+    │   ├── membership/request/           POST подать/повторить заявку
+    │   ├── presets/                      GET активные search_presets (approved)
+    │   └── search/
+    │       ├── parse/                    POST AI-разбор guided-запроса
+    │       ├── results/                  POST выдача + availability
+    │       └── book/                     POST мульти-бронь → Vitrina ingest
     ├── admin/marketplace/[slug]/members/ GET список (platform admin)
     ├── admin/marketplace/[slug]/members/[id]/ PATCH approve|reject|suspend
+    ├── admin/marketplace/[slug]/presets/ GET|POST CRUD пресетов
+    ├── admin/marketplace/[slug]/presets/[id]/ PATCH|DELETE
     ├── track/                            публичный трекинг с дедупликацией
     ├── visitor/                          API контура посетителя
     │   ├── register/                     регистрация по приглашению

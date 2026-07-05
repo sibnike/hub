@@ -121,12 +121,34 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 - `hub.marketplace_members` + RLS (tenant admin видит только свои строки, anon не экспонируется).
 - `lib/marketplace/membership.ts` — `getMembership`, `assertMarketplaceAccess`.
-- UI `/m/[slug]` — гейт: нет заявки / pending / approved («Поиск скоро») / rejected|suspended.
+- UI `/m/[slug]` — гейт: нет заявки / pending / approved (guided-поиск M4c) / rejected|suspended.
 - Platform admin: `/admin/marketplace/[slug]/members` — approve / reject / suspend.
 - API: `POST .../membership/request`, `GET .../membership`, admin list + PATCH.
 - Email (Resend `hub@yanbada.com`): заявка → platform admins; решение → tenant admins.
 
 **Следующие фазы:** M4c (guided-поиск, корзина), M4d (запрос v2).
+
+Документация: `docs/TZ-Marketplace-Multitenant.md`.
+
+---
+
+## Marketplace — H-M4c: guided-поиск (пресеты + AI + выдача + мульти-бронь)
+
+Реализовано (H-M4c), миграция `20260705213000_marketplace_search_presets_m4c` (дубль в vitrina):
+
+- `hub.search_presets` + RLS + сиды tourism (accommodation, transport, tourism).
+- RPC `hub.search_marketplace_listings` — themed listing search с городом.
+- Guided-флоу на `/m/[slug]` для approved-тенанта: пресет → город → текст → AI → уточнения → выдача → корзина.
+- Availability batch через Vitrina `/api/booking/availability` (как M3a).
+- Мульти-бронь: `POST .../search/book` → Vitrina ingest HMAC; metadata marketplace-атрибуции.
+- Platform admin: `/admin/marketplace/[slug]/presets`.
+- Тест: `npm run test:marketplace-m4c`.
+
+**Ограничение v1:** `requester_tenant_id` и `source_type=marketplace` в колонках `submissions` — после доработки Vitrina (M4d). Ingest кладёт атрибуцию в metadata.
+
+**Следующие фазы:** M4d (запрос v2, обратный канал).
+
+Документация: `docs/TZ-Marketplace-Search-Flow.md`.
 
 ---
 
