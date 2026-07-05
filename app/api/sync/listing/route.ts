@@ -14,6 +14,9 @@ type ListingSyncBody = {
   title?: Record<string, string>
   short_text?: Record<string, string>
   categories?: string[]
+  marketplace_themes?: string[]
+  price_from?: number | null
+  price_currency?: string | null
 }
 
 export async function POST(request: NextRequest) {
@@ -50,17 +53,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const { error } = await supabase.schema('hub').from('listing_cache').upsert(
-    {
-      tenant_id: data.tenant_id,
-      page_slug: data.page_slug,
-      title: data.title ?? {},
-      short_text: data.short_text ?? {},
-      categories: data.categories ?? [],
-      synced_at: new Date().toISOString(),
-    },
-    { onConflict: 'tenant_id,page_slug' }
-  )
+  const row: Record<string, unknown> = {
+    tenant_id: data.tenant_id,
+    page_slug: data.page_slug,
+    title: data.title ?? {},
+    short_text: data.short_text ?? {},
+    categories: data.categories ?? [],
+    synced_at: new Date().toISOString(),
+  }
+
+  if (data.marketplace_themes !== undefined) {
+    row.marketplace_themes = data.marketplace_themes
+  }
+  if (data.price_from !== undefined) {
+    row.price_from = data.price_from
+  }
+  if (data.price_currency !== undefined) {
+    row.price_currency = data.price_currency
+  }
+
+  const { error } = await supabase.schema('hub').from('listing_cache').upsert(row, {
+    onConflict: 'tenant_id,page_slug',
+  })
 
   if (error) {
     console.error('listing_cache upsert error:', error)

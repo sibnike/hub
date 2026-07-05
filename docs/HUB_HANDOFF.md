@@ -17,7 +17,15 @@
 - Claude пишет ТЗ в `docs/` и промпт агенту в `tasks/prompt_NN.md`
 - Cursor-агент выполняет, присылает отчёт
 - Деплой: `git push` → Vercel
-- Миграции: через Supabase Studio SQL Editor
+- **Миграции prod (shared Supabase с Vitrina):**
+  - **Нельзя** применять hub-DDL через Supabase MCP `apply_migration` — MCP ставит auto-timestamp,
+    version id не совпадает с именем файла в git → orphan в `schema_migrations`, ломает `db:push:prod`.
+  - **Предпочтительно:** файл в `vitrina/supabase/migrations/` (+ зеркало здесь в
+    `mega-hub/supabase/migrations/`) → из **vitrina**:
+    `CONFIRM_PROD_DB_PUSH=1 npm run db:push:prod`.
+  - **Если SQL уже выполнен вручную:** тот же DDL + ручной INSERT в
+    `supabase_migrations.schema_migrations` с `version = <timestamp из имени файла>` (не MCP).
+  - После нестандартного пути — `npx supabase migration list --linked` (из vitrina) и repair/rename.
 - ENV изменения требуют Redeploy
 
 ## Текущий статус (на момент закрытия чата)
@@ -62,10 +70,16 @@ cd /Users/nikolayzhdanov/Documents/Yanbada-superApp/mega-hub
 git add .
 git commit -m "..."
 git push
-```
 
-Миграции через Supabase Studio → SQL Editor → Run.
-ENV изменения → Vercel → Redeploy.
+# Prod миграции — из vitrina (shared DB), не MCP apply_migration:
+cd /Users/nikolayzhdanov/Documents/Yanbada-superApp/vitrina
+CONFIRM_PROD_DB_PUSH=1 npm run db:push:prod
+npx supabase migration list --linked
+
+# Hub-DDL: version id в schema_migrations = timestamp из имени .sql-файла.
+# Ручной SQL на prod → обязателен ручной INSERT в schema_migrations с тем же id.
+# ENV изменения → Vercel → Redeploy.
+```
 
 ## Ключевые ENV (проверять при проблемах)
 

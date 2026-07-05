@@ -1,7 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { MarketplaceRequestForm } from '@/components/marketplace/marketplace-request-form'
 import { MarketplaceSearchPanel } from '@/components/marketplace/marketplace-search-client'
+import { CityGuideIcon } from '@/components/icons/CityGuideIcon'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { IndustryCategory } from '@/types/catalog'
 
@@ -17,6 +19,13 @@ export function MarketplacePageClient({ categories }: MarketplacePageClientProps
         <p className="mt-2 text-sm text-muted-foreground">
           Найдите исполнителя или отправьте запрос — мы подберём подходящих партнёров на платформе.
         </p>
+        <Link
+          href="/m/tourism"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:border-[var(--accent)]/30 hover:text-foreground"
+        >
+          <CityGuideIcon size={16} className="text-[var(--accent)]" />
+          Туристический маркетплейс B2B
+        </Link>
       </header>
 
       <Tabs defaultValue="search" className="gap-6">

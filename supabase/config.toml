@@ -1,0 +1,31 @@
+# Hub local Supabase (shared-DB subset for migration testing)
+project_id = "mega-hub-local"
+
+[api]
+enabled = true
+port = 55431
+schemas = ["public", "hub"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 55432
+major_version = 15
+
+[db.migrations]
+enabled = true
+
+[studio]
+enabled = true
+port = 55433
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3001"
+
+[analytics]
+enabled = false
+
+[inbucket]
+enabled = true
+port = 55434

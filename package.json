@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:marketplace-search": "node scripts/test-marketplace-search.mjs"
+    "test:marketplace-search": "node scripts/test-marketplace-search.mjs",
+    "test:marketplace-m4b": "node scripts/test-marketplace-m4b.mjs",
+    "db:reset:local": "node scripts/db-reset-local.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

@@ -75,7 +75,26 @@ Auth посетителя — отдельный signed JWT cookie на 90 дн�
 ### Кэш данных компаний
 
 - **`hub.company_cache`** (read-only из webhook): tenant_id PK, name, logo_url, short_description jsonb,
-  categories, tags, country, website, social_links jsonb, contact_persons jsonb, vitrina_page_slug, synced_at.
+  categories, tags, country, website, social_links jsonb, contact_persons jsonb, vitrina_page_slug,
+  marketplace_themes text[], synced_at.
+- **`hub.listing_cache`** (read-only из webhook): tenant_id + page_slug PK, title/short_text jsonb,
+  categories, search_vector, marketplace_themes text[], price_from numeric, price_currency text, synced_at.
+
+### Мульти-маркетплейс (H-M4a)
+
+- **`hub.marketplaces`** — конфиг тематических маркетплейсов (slug, name/description i18n,
+  theme_slugs → slug'и из `public.marketplace_themes`, settings jsonb, is_active).
+  Сид: `tourism` с темами transport, accommodation, tourism, guides, food.
+- Справочник тем **`public.marketplace_themes`** Hub только читает (`lib/marketplace/themes.ts`, кэш 5 мин).
+
+### Membership маркетплейса (H-M4b)
+
+- **`hub.marketplace_members`** — заявки тенантов на доступ к маркетплейсу
+  (marketplace_id, tenant_id, status: pending|approved|rejected|suspended,
+  requested_by, reviewed_by/at, reject_reason). UNIQUE (marketplace_id, tenant_id).
+- RLS: SELECT — `is_platform_admin()` или `is_tenant_admin(tenant_id)`; INSERT — tenant admin,
+  status=pending; UPDATE/DELETE — только platform admin. Anon не экспонируется.
+- Хелперы: `lib/marketplace/membership.ts` (`getMembership`, `assertMarketplaceAccess`).
 
 ### Гайд посетителя (H-9)
 
@@ -147,8 +166,18 @@ app/
 │   ├── catalog/                          fallback заглушка с брендингом
 │   └── map/                              fallback заглушка с брендингом
 │
+├── marketplace/                          AI-поиск и запросы (механики 1–3a)
+├── m/[marketplaceSlug]/                  тематический маркетплейс (H-M4b: гейт по membership)
+├── admin/marketplace/[slug]/members/     platform admin: заявки на доступ
+│
 └── api/
-    ├── sync/company/                     webhook от Vitrina → company_cache
+    ├── sync/company/                     webhook от Vitrina → company_cache (+ marketplace_themes)
+    ├── sync/listing/                     webhook от Vitrina → listing_cache (+ themes, price)
+    ├── marketplace/[slug]/
+    │   ├── membership/                   GET статус членства активного тенанта
+    │   └── membership/request/           POST подать/повторить заявку
+    ├── admin/marketplace/[slug]/members/ GET список (platform admin)
+    ├── admin/marketplace/[slug]/members/[id]/ PATCH approve|reject|suspend
     ├── track/                            публичный трекинг с дедупликацией
     ├── visitor/                          API контура посетителя
     │   ├── register/                     регистрация по приглашению
@@ -210,6 +239,10 @@ Drag-and-drop через @dnd-kit, оптимистичный апдейт state
 ### 5.7 Webhook от Vitrina
 
 `POST /api/sync/company` с HMAC-подписью → upsert в `hub.company_cache` (service-role).
+Опционально `marketplace_themes: string[]` — при отсутствии поля существующее значение не затирается.
+
+`POST /api/sync/listing` с HMAC → upsert/delete в `hub.listing_cache`.
+Опционально `marketplace_themes`, `price_from`, `price_currency` — та же толерантность к отсутствию полей.
 
 ### 5.8 Аналитика
 

@@ -1,6 +1,6 @@
 # ROADMAP — Exhibitor Hub, следующие фазы
 
-Статус: на проде H-0...H-10 включительно.
+Статус: на проде H-0...H-10 включительно; Marketplace Механики 1, 2 и 3a — **shipped** (prod, сквозной прогон через Supabase MCP).
 
 Базовый поток выставки работает end-to-end:
 - Организатор создаёт событие, добавляет участников, расставляет стенды на карте, генерирует QR
@@ -29,9 +29,30 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 ---
 
-## Marketplace — Механика 1: AI-поиск тенанта ✅
+## Marketplace — сводка (shipped на prod)
 
-Реализовано (H-M1):
+| Механика | Статус | Prod-проверка |
+|----------|--------|---------------|
+| **1** — AI-поиск тенанта | ✅ shipped (H-M1) | `hub.company_cache` + FTS + `/api/marketplace/search` |
+| **2** — AI-поиск услуг/page | ✅ shipped (H-M2) | `hub.listing_cache` + sync listing + единая лента на `/marketplace` |
+| **3a** — запрос внешнего заявителя | ✅ shipped (H-M3a) | Hub → Vitrina ingest → `public.submissions` + `vitrina_submission_id` на target |
+
+Все три подтверждены реальным сквозным прогоном на prod (HTTP + сверка в Supabase MCP).
+
+**Отложено — отдельные будущие задачи, не сделаны:**
+
+- **Обратный канал** тенант → заявитель (webhook Vitrina → Hub при ответе на submission).
+- **Поток 3b** — внутренние B2B-запросы тенанта (результат в `booking_resources` / кросс-тенантное бронирование).
+- **Адресация на уровне сотрудника** (v1 = тенант целиком; персональный исполнитель — отдельная итерация).
+
+Не входит в Marketplace: embedding-поиск; `hub.meeting_requests` (см. фазу H-11).
+
+---
+
+## Marketplace — Механика 1: AI-поиск тенанта ✅ shipped
+
+Реализовано (H-M1), **на prod**:
+
 
 - Vitrina webhook передаёт `city` в `hub.company_cache`.
 - FTS: `search_vector` (GIN) + RPC `hub.search_company_cache`.
@@ -42,13 +63,11 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 Документация: `docs/TZ-Marketplace-Tenant-Search.md`.
 
-Не входит: embedding-поиск, механика 3 (`meeting_requests`).
-
 ---
 
-## Marketplace — Механика 2: AI-поиск услуг/page ✅
+## Marketplace — Механика 2: AI-поиск услуг/page ✅ shipped
 
-Реализовано (H-M2):
+Реализовано (H-M2), **на prod**:
 
 - `hub.listing_cache` — денормализованный кэш на уровне page (title, short_text, categories).
 - FTS: `search_vector` (GIN) + RPC `hub.search_listing_cache`.
@@ -61,18 +80,53 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 ---
 
-## Marketplace — Механика 3a: формирование запроса (внешний заявитель) ✅
+## Marketplace — Механика 3a: формирование запроса (внешний заявитель) ✅ shipped
 
-Реализовано (H-M3a), поток 3b (внутренний запрос тенанта → booking) **не входит**.
+Реализовано (H-M3a), **на prod** (сквозной прогон: `POST /api/marketplace/request` → submission в inbox тенанта, `vitrina_submission_id` в `hub.marketplace_request_targets`):
 
-- `hub.marketplace_requests` + `hub.marketplace_request_targets` + RLS (токен в заголовке, не URL).
+- `hub.marketplace_requests` + `hub.marketplace_request_targets` + RLS (токен в заголовке `X-Marketplace-Request-Token`, не в URL).
 - AI-парсинг, маршрутизация M1/M2, фильтр занятости (Vitrina availability API).
 - **Variant B:** Hub → `POST /api/integrations/submissions` (Vitrina, HMAC) → inbox тенанта.
 - UI `/marketplace`: вкладки «Поиск» и «Отправить запрос».
 
-**Отложено:** обратный канал ответа тенанта → заявитель (webhook Vitrina → Hub); адресация на сотрудника.
+**Отложено (не сделано, отдельные задачи):**
+
+- Обратный канал ответа тенанта → заявитель (webhook Vitrina → Hub).
+- Поток **3b** — внутренние B2B-запросы тенанта (встраивание исполнителя в booking заявителя).
+- Адресация на уровне сотрудника (v1 = тенант).
 
 Документация: `docs/TZ-Marketplace-Request.md`, Vitrina `docs/INTEGRATION-VITRINA-SUBMISSIONS-FROM-TOUCHIN.md`.
+
+---
+
+## Marketplace — H-M4a: мульти-маркетплейс (hub-side) ✅ shipped
+
+Реализовано (H-M4a), **на prod** (миграция `20260705134146_marketplace_multitenant_m4a`, деплой `hub.yanbada.com`, сквозной прогон `test-marketplace-m4a.mjs` 14/14):
+
+- `hub.marketplaces` + RLS (SELECT — authenticated, запись — `is_platform_admin()`), сид `tourism`.
+- `company_cache.marketplace_themes`, `listing_cache.marketplace_themes`, `price_from`, `price_currency` + GIN-индексы.
+- Sync: `/api/sync/company` и `/api/sync/listing` принимают новые поля; отсутствие поля не затирает кэш.
+- `lib/marketplace/themes.ts` — чтение `public.marketplace_themes` (кэш 5 мин).
+- UI: `/m/[slug]` (плейсхолдер «Доступ по заявке — скоро»), ссылка с `/marketplace` на `/m/tourism`.
+
+**Следующие фазы:** M4b (membership + гейт), M4c (guided-поиск, корзина), M4d (запрос v2).
+
+Документация: `docs/TZ-Marketplace-Multitenant.md`.
+
+---
+
+## Marketplace — H-M4b: membership (доступ по заявке тенанта) ✅ shipped
+
+Реализовано (H-M4b), миграция `20260705201000_marketplace_members_m4b` (дубль в vitrina):
+
+- `hub.marketplace_members` + RLS (tenant admin видит только свои строки, anon не экспонируется).
+- `lib/marketplace/membership.ts` — `getMembership`, `assertMarketplaceAccess`.
+- UI `/m/[slug]` — гейт: нет заявки / pending / approved («Поиск скоро») / rejected|suspended.
+- Platform admin: `/admin/marketplace/[slug]/members` — approve / reject / suspend.
+- API: `POST .../membership/request`, `GET .../membership`, admin list + PATCH.
+- Email (Resend `hub@yanbada.com`): заявка → platform admins; решение → tenant admins.
+
+**Следующие фазы:** M4c (guided-поиск, корзина), M4d (запрос v2).
 
 ---
 

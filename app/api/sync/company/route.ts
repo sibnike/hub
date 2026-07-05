@@ -32,26 +32,32 @@ export async function POST(request: NextRequest) {
     social_links?: Record<string, string>
     contact_persons?: unknown[]
     vitrina_page_slug?: string
+    marketplace_themes?: string[]
   }
 
-  const { error } = await supabase.schema('hub').from('company_cache').upsert(
-    {
-      tenant_id: data.tenant_id,
-      name: data.name,
-      logo_url: data.logo_url,
-      short_description: data.short_description,
-      categories: data.categories,
-      tags: data.tags,
-      country: data.country,
-      city: data.city,
-      website: data.website,
-      social_links: data.social_links,
-      contact_persons: data.contact_persons,
-      vitrina_page_slug: data.vitrina_page_slug,
-      synced_at: new Date().toISOString(),
-    },
-    { onConflict: 'tenant_id' }
-  )
+  const row: Record<string, unknown> = {
+    tenant_id: data.tenant_id,
+    name: data.name,
+    logo_url: data.logo_url,
+    short_description: data.short_description,
+    categories: data.categories,
+    tags: data.tags,
+    country: data.country,
+    city: data.city,
+    website: data.website,
+    social_links: data.social_links,
+    contact_persons: data.contact_persons,
+    vitrina_page_slug: data.vitrina_page_slug,
+    synced_at: new Date().toISOString(),
+  }
+
+  if (data.marketplace_themes !== undefined) {
+    row.marketplace_themes = data.marketplace_themes
+  }
+
+  const { error } = await supabase.schema('hub').from('company_cache').upsert(row, {
+    onConflict: 'tenant_id',
+  })
 
   if (error) {
     console.error('company_cache upsert error:', error)

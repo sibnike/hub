@@ -21,6 +21,7 @@ REVOKE SELECT ON hub.marketplace_requests FROM anon, authenticated;
 REVOKE SELECT ON hub.marketplace_request_targets FROM anon, authenticated;
 
 -- Targeted tenant admin (or platform admin) may read the parent request
+DROP POLICY IF EXISTS "marketplace_requests_tenant_admin" ON hub.marketplace_requests;
 CREATE POLICY "marketplace_requests_tenant_admin" ON hub.marketplace_requests
   FOR SELECT TO authenticated
   USING (
@@ -34,6 +35,7 @@ CREATE POLICY "marketplace_requests_tenant_admin" ON hub.marketplace_requests
   );
 
 -- Requester may read only their own row via secret token header (future status UI)
+DROP POLICY IF EXISTS "marketplace_requests_requester_token" ON hub.marketplace_requests;
 CREATE POLICY "marketplace_requests_requester_token" ON hub.marketplace_requests
   FOR SELECT TO anon, authenticated
   USING (
@@ -45,6 +47,7 @@ CREATE POLICY "marketplace_requests_requester_token" ON hub.marketplace_requests
   );
 
 -- Tenant admin sees only targets addressed to their tenant
+DROP POLICY IF EXISTS "marketplace_request_targets_tenant_admin" ON hub.marketplace_request_targets;
 CREATE POLICY "marketplace_request_targets_tenant_admin" ON hub.marketplace_request_targets
   FOR SELECT TO authenticated
   USING (
