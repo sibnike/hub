@@ -155,7 +155,7 @@ Framer Motion анимации, скелетоны вместо спиннеро
 
 ## Marketplace — H-M4d: запрос v2 (бюджет + accept/decline + обратный канал)
 
-Реализовано (H-M4d), миграция `20260705220000_marketplace_request_v2_m4d` (дубль в vitrina):
+Реализовано (H-M4d), миграция `20260705230000_marketplace_request_v2_m4d` (дубль в vitrina):
 
 - Budget + `requester_tenant_id` на `marketplace_requests`; `response_status` на targets.
 - Guided-флоу: «Отправить запрос» с бюджетом → multi-target ingest (`source_type=marketplace`).
