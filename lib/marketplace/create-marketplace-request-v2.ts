@@ -93,7 +93,7 @@ export async function createMarketplaceRequestV2(
     }
   }
 
-  const targets = [...uniqueTargets.values()]
+  const targets = Array.from(uniqueTargets.values())
   if (!targets.length) {
     throw new Error('No valid targets')
   }

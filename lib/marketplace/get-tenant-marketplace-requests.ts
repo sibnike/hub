@@ -33,7 +33,7 @@ export async function getTenantMarketplaceRequests(
     )
     .in('request_id', requestIds)
 
-  const tenantIds = [...new Set((targets ?? []).map((t) => String(t.tenant_id)))]
+  const tenantIds = Array.from(new Set((targets ?? []).map((t) => String(t.tenant_id))))
   const admin = createAdminClient()
   const { data: tenants } = tenantIds.length
     ? await admin.from('tenants').select('id, name, slug').in('id', tenantIds)
