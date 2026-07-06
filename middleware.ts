@@ -2,6 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 import { mergeAuthCookieOptions } from '@/lib/supabase/auth-cookie'
+import { getMarketplaceByHost } from '@/lib/marketplace/get-marketplace'
+import {
+  isYanbadaHubHost,
+  normalizeMarketplaceHost,
+} from '@/lib/marketplace/marketplace-host'
 
 function createServiceClient() {
   return createClient(
@@ -11,18 +16,12 @@ function createServiceClient() {
   )
 }
 
-function isKnownHubHost(host: string): boolean {
-  const hubDomain = process.env.NEXT_PUBLIC_HUB_DOMAIN ?? 'hub.yanbada.com'
-  return (
-    host === hubDomain ||
-    host.endsWith('.yanbada.com') ||
-    host.startsWith('localhost') ||
-    host.startsWith('127.0.0.1')
-  )
-}
-
-async function refreshAuth(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+async function withAuthRefresh(
+  request: NextRequest,
+  host: string,
+  createResponse: () => NextResponse
+): Promise<NextResponse> {
+  let response = createResponse()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,9 +33,9 @@ async function refreshAuth(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
+          response = createResponse()
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, mergeAuthCookieOptions(options))
+            response.cookies.set(name, value, mergeAuthCookieOptions(options, host))
           )
         },
       },
@@ -44,7 +43,7 @@ async function refreshAuth(request: NextRequest) {
   )
 
   await supabase.auth.getUser()
-  return supabaseResponse
+  return response
 }
 
 function normalizeTrailingSlash(request: NextRequest): NextResponse | null {
@@ -64,14 +63,20 @@ export async function middleware(request: NextRequest) {
   if (slashRedirect) return slashRedirect
 
   const host = request.headers.get('host') ?? ''
+  const normalizedHost = normalizeMarketplaceHost(host)
+  const { pathname } = request.nextUrl
 
-  if (!isKnownHubHost(host)) {
+  if (pathname.startsWith('/m/')) {
+    return withAuthRefresh(request, host, () => NextResponse.next({ request }))
+  }
+
+  if (!isYanbadaHubHost(normalizedHost)) {
     const supabase = createServiceClient()
     const { data: event } = await supabase
       .schema('hub')
       .from('events')
       .select('slug, settings')
-      .filter('settings->>custom_domain', 'eq', host)
+      .filter('settings->>custom_domain', 'eq', normalizedHost)
       .eq('status', 'published')
       .maybeSingle()
 
@@ -89,7 +94,7 @@ export async function middleware(request: NextRequest) {
       const originalPath = url.pathname
 
       if (prefix && !originalPath.startsWith(prefix)) {
-        return refreshAuth(request)
+        return withAuthRefresh(request, host, () => NextResponse.next({ request }))
       }
 
       const cleanPath = prefix
@@ -101,9 +106,16 @@ export async function middleware(request: NextRequest) {
       url.pathname = `/e/${event.slug}${cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`}`
       return NextResponse.rewrite(url)
     }
+
+    const marketplace = await getMarketplaceByHost(normalizedHost)
+    if (marketplace) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/m/${marketplace.slug}${pathname === '/' ? '' : pathname}`
+      return withAuthRefresh(request, host, () => NextResponse.rewrite(url))
+    }
   }
 
-  return refreshAuth(request)
+  return withAuthRefresh(request, host, () => NextResponse.next({ request }))
 }
 
 export const config = {

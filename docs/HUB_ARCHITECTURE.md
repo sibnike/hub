@@ -32,6 +32,7 @@ SESSION_SIGNING_SECRET                  # используется для под
 VITRINA_WEBHOOK_SECRET                  # shared HMAC с Vitrina
 VITRINA_INTERNAL_URL=https://admin.yanbada.com
 NEXT_PUBLIC_HUB_DOMAIN=hub.yanbada.com
+NEXT_PUBLIC_MARKETPLACE_ROOT=microp.app
 NEXT_PUBLIC_VITRINA_ADMIN=https://admin.yanbada.com
 NEXT_PUBLIC_VITRINA_PUBLIC=https://vitrina.yanbada.com
 RESEND_API_KEY

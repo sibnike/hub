@@ -65,8 +65,9 @@ Hub **не пишет** в схему `public` (кроме чтения `tenant_
 ## Middleware
 
 1. **Trailing slash** — `/e/slug/` → 308 на `/e/slug`
-2. **Custom domain** — rewrite на `/e/{slug}/...` по `events.settings.custom_domain`
-3. **Auth refresh** — Supabase SSR cookies
+2. **Custom domain (события)** — rewrite на `/e/{slug}/...` по `events.settings.custom_domain`
+3. **Marketplace domains** — `*.microp.app` / кастомный домен → rewrite на `/m/{slug}` (см. `docs/MARKETPLACE_DOMAINS.md`)
+4. **Auth refresh** — Supabase SSR cookies (host-aware `domain`)
 
 ## Синхронизация Vitrina → Hub
 
@@ -95,6 +96,8 @@ Hub **не пишет** в схему `public` (кроме чтения `tenant_
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin client (track, sync) |
 | `VITRINA_WEBHOOK_SECRET` | HMAC для webhook |
 | `NEXT_PUBLIC_HUB_DOMAIN` | Домен Hub (middleware) |
+| `NEXT_PUBLIC_MARKETPLACE_ROOT` | Базовый домен поддоменов маркетплейсов (`microp.app`) |
+| `NEXT_PUBLIC_AUTH_COOKIE_DOMAIN` | Shared auth cookie для `*.yanbada.com` |
 | `NEXT_PUBLIC_VITRINA_ADMIN` | URL Vitrina admin |
 
 ## Локальная разработка
