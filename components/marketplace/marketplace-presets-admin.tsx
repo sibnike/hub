@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import type { SearchPresetParam, SearchPresetRow } from '@/types/marketplace-guided-search'
 
@@ -46,7 +45,6 @@ function emptyDraft(themeSlugs: string[]): PresetDraft {
 
 export function PresetsAdminClient({
   marketplaceSlug,
-  marketplaceName,
   themeSlugs,
 }: PresetsAdminClientProps) {
   const [presets, setPresets] = useState<SearchPresetRow[]>([])
@@ -153,19 +151,7 @@ export function PresetsAdminClient({
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-6">
-        <Link
-          href="/marketplace"
-          className="text-sm text-[var(--muted)] hover:text-foreground"
-        >
-          Yanbada Marketplace
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Пресеты поиска — {marketplaceName}
-        </h1>
-      </div>
-
+    <>
       <div className="mb-4">
         <Button size="sm" onClick={() => setDraft(emptyDraft(themeSlugs))}>
           Новый пресет
@@ -297,6 +283,6 @@ export function PresetsAdminClient({
           </li>
         ))}
       </ul>
-    </div>
+    </>
   )
 }

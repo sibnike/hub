@@ -5,7 +5,6 @@ import {
   getAccessibleTenants,
   resolveActiveTenantId,
 } from '@/lib/auth/current-tenant'
-import { getI18nText } from '@/lib/i18n/get-text'
 import { getActiveMarketplaceBySlug } from '@/lib/marketplace/get-marketplace'
 import { assertMarketplaceAccess } from '@/lib/marketplace/membership'
 import { createClient } from '@/lib/supabase/server'
@@ -14,22 +13,6 @@ export const dynamic = 'force-dynamic'
 
 type PageProps = {
   params: Promise<{ marketplaceSlug: string }>
-}
-
-export async function generateMetadata({ params }: PageProps) {
-  const { marketplaceSlug } = await params
-  const marketplace = await getActiveMarketplaceBySlug(marketplaceSlug)
-
-  if (!marketplace) {
-    return { title: 'Маркетплейс не найден' }
-  }
-
-  const title = getI18nText(marketplace.name, 'ru', marketplace.slug)
-
-  return {
-    title: `${title} — Yanbada`,
-    description: getI18nText(marketplace.description, 'ru'),
-  }
 }
 
 export default async function MarketplaceHubPage({ params }: PageProps) {

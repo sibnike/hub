@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import type {
   MarketplaceMemberStatus,
@@ -22,7 +21,6 @@ type MembersAdminClientProps = {
 
 export function MembersAdminClient({
   marketplaceSlug,
-  marketplaceName,
 }: MembersAdminClientProps) {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [members, setMembers] = useState<MarketplaceMemberWithTenant[]>([])
@@ -92,19 +90,7 @@ export function MembersAdminClient({
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-6">
-        <Link
-          href="/marketplace"
-          className="text-sm text-[var(--muted)] hover:text-foreground"
-        >
-          Yanbada Marketplace
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Заявки — {marketplaceName}
-        </h1>
-      </div>
-
+    <>
       <div className="mb-4 flex items-center gap-3">
         <label className="text-sm text-[var(--muted)]" htmlFor="status-filter">
           Статус
@@ -216,6 +202,6 @@ export function MembersAdminClient({
           </li>
         ))}
       </ul>
-    </div>
+    </>
   )
 }

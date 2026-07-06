@@ -9,6 +9,7 @@ export function getI18nText(
   return (
     map[locale] ??
     map.ru ??
+    map.kz ??
     map.en ??
     Object.values(map).find((v) => typeof v === 'string' && v.trim()) ??
     fallback ??

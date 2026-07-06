@@ -1,9 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowLeftIcon } from '@/components/icons/ArrowLeftIcon'
 import { BuildingIcon } from '@/components/icons/BuildingIcon'
 import { CalendarIcon } from '@/components/icons/CalendarIcon'
 import { CheckCircleIcon } from '@/components/icons/CheckCircleIcon'
@@ -24,8 +22,8 @@ import type {
   SearchPresetRow,
 } from '@/types/marketplace-guided-search'
 import type { DispatchTargetResult } from '@/types/marketplace-request'
-import type { OrganizerTenant } from '@/types/hub-event'
 import { MarketplaceMyRequests } from '@/components/marketplace/marketplace-my-requests'
+import { useMarketplaceLocale } from '@/components/marketplace/marketplace-locale-context'
 
 const vitrinaBase =
   process.env.NEXT_PUBLIC_VITRINA_PUBLIC?.replace(/\/$/, '') ??
@@ -46,7 +44,6 @@ type HubView = 'search' | 'requests'
 
 type MarketplaceGuidedSearchProps = {
   marketplace: HubMarketplace
-  tenant: OrganizerTenant
 }
 
 function emptyParams(): GuidedSearchParams {
@@ -80,11 +77,8 @@ function formatPrice(offer: MarketplaceListingOffer): string | null {
   return `от ${offer.price_from.toLocaleString('ru-RU')} ${currency}`
 }
 
-export function MarketplaceGuidedSearch({
-  marketplace,
-  tenant,
-}: MarketplaceGuidedSearchProps) {
-  const title = getI18nText(marketplace.name, 'ru', marketplace.slug)
+export function MarketplaceGuidedSearch({ marketplace }: MarketplaceGuidedSearchProps) {
+  const { locale } = useMarketplaceLocale()
   const [step, setStep] = useState<Step>('preset')
   const [presets, setPresets] = useState<SearchPresetRow[]>([])
   const [preset, setPreset] = useState<SearchPresetRow | null>(null)
@@ -236,7 +230,7 @@ export function MarketplaceGuidedSearch({
       setCart(cart.filter((c) => c.listing_id !== offer.id))
       return
     }
-    const titleText = getI18nText(offer.title, 'ru', offer.page_slug)
+    const titleText = getI18nText(offer.title, locale, offer.page_slug)
     setCart([
       ...cart,
       {
@@ -328,39 +322,23 @@ export function MarketplaceGuidedSearch({
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 md:px-6 md:py-14">
-      <Link
-        href="/marketplace"
-        className="mb-8 inline-flex items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-foreground"
-      >
-        <ArrowLeftIcon size={16} />
-        Yanbada Marketplace
-      </Link>
-
-      <header className="mb-8">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight md:text-4xl">
-          {title}
-        </h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Тенант: <span className="text-foreground">{tenant.name}</span>
-        </p>
-        <div className="mt-4 flex gap-2">
-          <Button
-            size="sm"
-            variant={hubView === 'search' ? 'default' : 'outline'}
-            onClick={() => setHubView('search')}
-          >
-            Поиск
-          </Button>
-          <Button
-            size="sm"
-            variant={hubView === 'requests' ? 'default' : 'outline'}
-            onClick={() => setHubView('requests')}
-          >
-            Мои запросы
-          </Button>
-        </div>
-      </header>
+    <div className="mx-auto max-w-4xl px-4 pb-10 md:px-6 md:pb-14">
+      <div className="mb-8 flex gap-2">
+        <Button
+          size="sm"
+          variant={hubView === 'search' ? 'default' : 'outline'}
+          onClick={() => setHubView('search')}
+        >
+          Поиск
+        </Button>
+        <Button
+          size="sm"
+          variant={hubView === 'requests' ? 'default' : 'outline'}
+          onClick={() => setHubView('requests')}
+        >
+          Мои запросы
+        </Button>
+      </div>
 
       {hubView === 'requests' ? (
         <MarketplaceMyRequests marketplaceSlug={marketplace.slug} />
@@ -387,7 +365,7 @@ export function MarketplaceGuidedSearch({
                 className="rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition hover:border-[var(--accent)] hover:shadow-md"
                 onClick={() => selectPreset(p)}
               >
-                <p className="font-medium text-foreground">{getI18nText(p.name, 'ru', p.theme_slug)}</p>
+                <p className="font-medium text-foreground">{getI18nText(p.name, locale, p.theme_slug)}</p>
                 <p className="mt-1 text-xs text-[var(--muted)]">{p.theme_slug}</p>
                 <ChevronRightIcon size={16} className="mt-3 text-[var(--muted)]" />
               </button>
@@ -430,7 +408,7 @@ export function MarketplaceGuidedSearch({
           <h2 className="mb-4 text-lg font-medium">Опишите запрос</h2>
           <textarea
             className="min-h-[140px] w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder={getI18nText(preset.hint_template, 'ru')}
+            placeholder={getI18nText(preset.hint_template, locale)}
             value={queryText}
             onChange={(e) => setQueryText(e.target.value)}
           />
@@ -454,7 +432,7 @@ export function MarketplaceGuidedSearch({
           <div className="space-y-4">
             {missingParams.map((key) => {
               const hint = preset.clarify_hints[key]
-              const label = hint ? getI18nText(hint, 'ru', key) : key
+              const label = hint ? getI18nText(hint, locale, key) : key
               return (
                 <label key={key} className="block text-sm">
                   <span className="text-[var(--muted)]">{label}</span>
@@ -603,7 +581,7 @@ export function MarketplaceGuidedSearch({
 
           <ul className="space-y-4">
             {results.map((offer) => {
-              const titleText = getI18nText(offer.title, 'ru', offer.page_slug)
+              const titleText = getI18nText(offer.title, locale, offer.page_slug)
               const inCart = cart.some((c) => c.listing_id === offer.id)
               const price = formatPrice(offer)
               const unavailable = offer.availability_checked && offer.available === false
