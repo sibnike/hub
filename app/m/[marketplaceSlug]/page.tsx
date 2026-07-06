@@ -1,8 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { MarketplaceApprovedHub } from '@/components/marketplace/marketplace-approved-hub'
 import { MarketplaceMembershipGate } from '@/components/marketplace/marketplace-membership-gate'
-import { TenantSelector } from '@/components/organizer/tenant-selector'
-import { HubHeader } from '@/components/hub/hub-header'
 import {
   getAccessibleTenants,
   resolveActiveTenantId,
@@ -67,15 +65,9 @@ export default async function MarketplaceHubPage({ params }: PageProps) {
 
   if (access.allowed) {
     return (
-      <>
-        <HubHeader />
-        {tenants.length > 1 ? (
-          <TenantSelector tenants={tenants} activeTenantId={activeTenant.id} />
-        ) : null}
-        <main className="min-h-screen bg-background text-foreground">
-          <MarketplaceApprovedHub marketplace={marketplace} tenant={activeTenant} />
-        </main>
-      </>
+      <main>
+        <MarketplaceApprovedHub marketplace={marketplace} tenant={activeTenant} />
+      </main>
     )
   }
 
@@ -84,18 +76,12 @@ export default async function MarketplaceHubPage({ params }: PageProps) {
   }
 
   return (
-    <>
-      <HubHeader />
-      {tenants.length > 1 ? (
-        <TenantSelector tenants={tenants} activeTenantId={activeTenant.id} />
-      ) : null}
-      <main className="min-h-screen bg-background text-foreground">
-        <MarketplaceMembershipGate
-          marketplace={marketplace}
-          tenant={activeTenant}
-          membership={access.membership}
-        />
-      </main>
-    </>
+    <main>
+      <MarketplaceMembershipGate
+        marketplace={marketplace}
+        tenant={activeTenant}
+        membership={access.membership}
+      />
+    </main>
   )
 }
