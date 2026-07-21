@@ -34,7 +34,9 @@ yarn-error.log*
 # supabase CLI artifacts
 supabase/.branches/
 supabase/.temp/
+.env.prod.seed
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env*

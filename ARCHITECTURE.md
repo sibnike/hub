@@ -1,5 +1,7 @@
 # Yanbada Exhibitor Hub — Architecture
 
+> **Экосистема:** [../docs/YANBADA_ARCHITECTURE.md](../docs/YANBADA_ARCHITECTURE.md) · **Статус:** [../docs/PROGRESS.md](../docs/PROGRESS.md) · **Навигатор агентов:** [../docs/agent-context/07-where-to-look.md](../docs/agent-context/07-where-to-look.md)
+
 Exhibitor Hub (`mega-hub`) — публичный каталог выставок, кабинеты организатора и участника. Работает в паре с **Vitrina** (профили компаний) через общий Supabase Auth и webhook-синхронизацию.
 
 ## Экосистема
