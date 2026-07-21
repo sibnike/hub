@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-/** Next.js 14 caches GET route handlers by default — profile must be live after Vitrina sync. */
+/** Next.js 14 caches GET handlers and Supabase fetch() — profile must be live after Vitrina sync. */
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 type RouteParams = { params: { tenantSlug: string } }
 
