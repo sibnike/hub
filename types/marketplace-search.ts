@@ -20,6 +20,7 @@ export type MarketplaceListingResult = ListingCacheRow & {
   tenant_slug: string | null
   tenant_name: string | null
   logo_url: string | null
+  company_city: string | null
   rank: number
 }
 
