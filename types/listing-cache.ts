@@ -6,4 +6,7 @@ export type ListingCacheRow = {
   short_text: Record<string, string>
   categories: string[]
   synced_at: string | null
+  marketplace_themes?: string[]
+  price_from?: number | null
+  price_currency?: string | null
 }

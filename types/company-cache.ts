@@ -7,6 +7,14 @@ export type ContactPerson = {
   email?: string
 }
 
+export type CompanyLicense = {
+  kind?: string
+  type?: I18nMap | string
+  number?: string
+  document_url?: string
+} | null
+
+/** Core hub.company_cache row; extended tourism/media fields optional until synced. */
 export type CompanyCacheRow = {
   tenant_id: string
   name: string | null
@@ -21,4 +29,19 @@ export type CompanyCacheRow = {
   contact_persons: ContactPerson[]
   vitrina_page_slug: string | null
   synced_at: string | null
+  marketplace_themes?: string[]
+  logo_dark_url?: string | null
+  cover_photo_url?: string | null
+  gallery?: unknown[]
+  video?: Record<string, unknown>
+  about?: I18nMap
+  languages?: string[]
+  coverage_cities?: unknown[]
+  license?: CompanyLicense
+  tourism_business_role?: string | null
+  founding_year?: number | null
+  employee_count?: number | null
+  legal_entity_type?: string | null
+  legal_name?: string | null
+  registration_number?: string | null
 }
