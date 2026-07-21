@@ -19,26 +19,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  const data = JSON.parse(body) as {
-    tenant_id: string
-    name?: string
-    logo_url?: string
-    short_description?: Record<string, string>
-    categories?: string[]
-    tags?: string[]
-    country?: string
-    city?: string
-    website?: string
-    social_links?: Record<string, string>
-    contact_persons?: unknown[]
-    vitrina_page_slug?: string
-    marketplace_themes?: string[]
-  }
+  const data = JSON.parse(body) as Record<string, unknown> & { tenant_id: string }
 
   const row: Record<string, unknown> = {
     tenant_id: data.tenant_id,
     name: data.name,
     logo_url: data.logo_url,
+    logo_dark_url: data.logo_dark_url,
+    cover_photo_url: data.cover_photo_url,
+    gallery: data.gallery ?? [],
+    video: data.video ?? {},
+    about: data.about ?? {},
+    languages: data.languages ?? [],
+    coverage_cities: data.coverage_cities ?? [],
+    license: data.license ?? null,
+    tourism_business_role: data.tourism_business_role ?? null,
+    founding_year: data.founding_year ?? null,
+    employee_count: data.employee_count ?? null,
+    legal_entity_type: data.legal_entity_type ?? null,
+    legal_name: data.legal_name ?? null,
+    registration_number: data.registration_number ?? null,
     short_description: data.short_description,
     categories: data.categories,
     tags: data.tags,
