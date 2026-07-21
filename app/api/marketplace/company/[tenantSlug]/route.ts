@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+/** Next.js 14 caches GET route handlers by default — profile must be live after Vitrina sync. */
+export const dynamic = 'force-dynamic'
+
 type RouteParams = { params: { tenantSlug: string } }
 
 /** Public read: company_cache snapshot for TourHub seller profile (live mode). */
