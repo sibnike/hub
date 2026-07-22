@@ -39,13 +39,21 @@ export function resolveMarketplaceHost(
 export function isYanbadaHubHost(host: string): boolean {
   const normalized = normalizeMarketplaceHost(host)
   const hubDomain = normalizeMarketplaceHost(
-    process.env.NEXT_PUBLIC_HUB_DOMAIN ?? 'hub.yanbada.com'
+    process.env.NEXT_PUBLIC_HUB_DOMAIN ?? 'hub.microp.app'
   )
 
-  return (
-    normalized === hubDomain ||
+  if (normalized === hubDomain) return true
+
+  // Legacy yanbada prod hosts (skip marketplace rewrite on main hub domain tree)
+  if (
     normalized === 'yanbada.com' ||
-    normalized.endsWith('.yanbada.com') ||
+    normalized === 'hub.yanbada.com' ||
+    normalized.endsWith('.yanbada.com')
+  ) {
+    return true
+  }
+
+  return (
     normalized === 'localhost' ||
     normalized.startsWith('127.0.0.1')
   )

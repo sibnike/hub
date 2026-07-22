@@ -4,7 +4,7 @@
 
 | Вход | Пример | Резолв |
 |------|--------|--------|
-| Internal | `hub.yanbada.com/m/tourism` | Прямой путь, без rewrite |
+| Internal | `hub.microp.app/m/tourism` | Прямой путь, без rewrite |
 | Поддомен | `tourism.microp.app` | Middleware → rewrite `/m/tourism` |
 | Кастомный домен | `tourhub.kz` | `hub.marketplaces.custom_domain` → rewrite `/m/tourism` |
 
@@ -14,7 +14,7 @@
 
 ```
 NEXT_PUBLIC_MARKETPLACE_ROOT=microp.app
-NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=.yanbada.com   # только для *.yanbada.com
+NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=.microp.app   # shared admin + hub on *.microp.app
 ```
 
 На `*.microp.app` и кастомных доменах auth cookie **host-only** (без `domain`).
@@ -55,6 +55,6 @@ CONFIRM_PROD_DB_PUSH=1 npm run db:push:prod
 
 | Host | Cookie `domain` |
 |------|-----------------|
-| `*.yanbada.com` | `.yanbada.com` |
-| `tourhub.kz`, `*.microp.app` | не задан (host-only) |
+| `*.yanbada.com` | `.yanbada.com` (legacy) |
+| `*.microp.app`, кастомные домены | `.microp.app` или host-only |
 | `localhost` | не задан |

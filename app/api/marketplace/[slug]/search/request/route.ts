@@ -106,7 +106,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       marketplace_slug: slug,
       requester_tenant_id: access.tenantId,
       requester_name: body.requester_name?.trim() || tenant?.name || 'Marketplace tenant',
-      requester_contact: body.requester_contact?.trim() || 'marketplace@yanbada.com',
+      requester_contact: body.requester_contact?.trim() || 'marketplace@microp.app',
       request_text: requestText,
       budget_amount: budgetAmount,
       budget_currency: body.budget_currency?.trim() || 'KZT',

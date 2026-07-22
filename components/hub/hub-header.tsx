@@ -7,13 +7,13 @@ export async function HubHeader() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const adminUrl = process.env.NEXT_PUBLIC_VITRINA_ADMIN ?? 'https://admin.yanbada.com'
+  const adminUrl = process.env.NEXT_PUBLIC_VITRINA_ADMIN ?? 'https://admin.microp.app'
 
   return (
     <header className="border-b px-4 py-3 flex items-center justify-between gap-4">
       <nav className="flex items-center gap-4 text-sm font-medium">
         <Link href="/organizer/events" className="font-bold">
-          Yanbada Hub
+          Microp Hub
         </Link>
         {user ? (
           <>

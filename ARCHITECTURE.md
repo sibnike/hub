@@ -7,11 +7,11 @@ Exhibitor Hub (`mega-hub`) — публичный каталог выставо�
 ## Экосистема
 
 ```
-Vitrina (admin.yanbada.com)
+Vitrina (admin.microp.app)
   │  сохранение company_profiles
   │  POST /api/sync/company (HMAC webhook)
   ▼
-Hub (hub.yanbada.com)
+Hub (hub.microp.app)
   │  hub.company_cache
   │  события, участники, карты, аналитика
   ▼

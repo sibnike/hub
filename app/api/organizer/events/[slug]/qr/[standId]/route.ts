@@ -38,7 +38,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const hubDomain = process.env.NEXT_PUBLIC_HUB_DOMAIN ?? 'hub.yanbada.com'
+  const hubDomain = process.env.NEXT_PUBLIC_HUB_DOMAIN ?? 'hub.microp.app'
   const url = `https://${hubDomain}/e/${event.slug}/stand/${params.standId}`
 
   const buffer = await QRCode.toBuffer(url, {

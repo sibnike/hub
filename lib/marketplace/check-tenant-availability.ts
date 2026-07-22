@@ -1,6 +1,6 @@
 const vitrinaBase =
   process.env.NEXT_PUBLIC_VITRINA_PUBLIC?.replace(/\/$/, '') ??
-  'https://vitrina.yanbada.com'
+  'https://vitrina.microp.app'
 
 type DateAvailabilityRow = {
   date: string

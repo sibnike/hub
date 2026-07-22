@@ -1,5 +1,5 @@
 export function vitrinaPublicBase(): string {
-  const raw = process.env.NEXT_PUBLIC_VITRINA_PUBLIC ?? 'https://vitrina.yanbada.com'
+  const raw = process.env.NEXT_PUBLIC_VITRINA_PUBLIC ?? 'https://vitrina.microp.app'
   const trimmed = raw.replace(/\/$/, '')
   return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
 }

@@ -52,7 +52,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     const requesterName = body.requester_name?.trim() || tenant?.name || 'Marketplace tenant'
-    const requesterContact = body.requester_contact?.trim() || 'marketplace@yanbada.com'
+    const requesterContact = body.requester_contact?.trim() || 'marketplace@microp.app'
 
     const { results, booked_count } = await dispatchMarketplaceBookings({
       marketplaceSlug: slug,

@@ -31,7 +31,7 @@ function getAuthCookieDomainForHost(host) {
   return undefined
 }
 
-function isYanbadaHubHost(host, hubDomain = 'hub.yanbada.com') {
+function isYanbadaHubHost(host, hubDomain = 'hub.microp.app') {
   const normalized = normalizeHost(host)
   const hub = normalizeHost(hubDomain)
   return (

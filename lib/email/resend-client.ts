@@ -2,7 +2,7 @@ import { Resend } from 'resend'
 
 export const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-export const EMAIL_FROM = 'Yanbada <hub@yanbada.com>'
+export const EMAIL_FROM = 'Microp <hub@microp.app>'
 
 export async function sendEmail(opts: {
   to: string

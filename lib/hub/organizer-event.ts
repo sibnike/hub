@@ -15,6 +15,6 @@ export async function loadEventBySlug(slug: string): Promise<HubEventRow | null>
 }
 
 export function hubBaseUrl(): string {
-  const domain = process.env.NEXT_PUBLIC_HUB_DOMAIN ?? 'hub.yanbada.com'
+  const domain = process.env.NEXT_PUBLIC_HUB_DOMAIN ?? 'hub.microp.app'
   return `https://${domain}`
 }

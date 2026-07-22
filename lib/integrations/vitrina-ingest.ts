@@ -16,12 +16,12 @@ export function getVitrinaApiBase(): string {
   return (
     process.env.VITRINA_API_URL?.replace(/\/$/, '') ??
     process.env.NEXT_PUBLIC_VITRINA_PUBLIC?.replace(/\/$/, '') ??
-    'https://vitrina.yanbada.com'
+    'https://vitrina.microp.app'
   )
 }
 
 export function getHubMarketplaceSourceUrl(): string {
   const domain = process.env.NEXT_PUBLIC_HUB_DOMAIN?.trim()
   if (domain) return `https://${domain.replace(/^https?:\/\//, '')}/marketplace`
-  return 'https://hub.yanbada.com/marketplace'
+  return 'https://hub.microp.app/marketplace'
 }
