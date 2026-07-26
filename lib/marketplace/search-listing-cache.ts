@@ -166,8 +166,8 @@ export async function searchListingCache(
       const catSet = new Set(filter.categories)
       return channelResults.filter(
         (r) =>
-          r.marketplace_themes.some((t) => catSet.has(t)) ||
-          r.categories.some((c) => catSet.has(c))
+          (r.marketplace_themes ?? []).some((t) => catSet.has(t)) ||
+          (r.categories ?? []).some((c) => catSet.has(c))
       )
     }
     return channelResults
