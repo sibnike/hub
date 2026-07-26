@@ -2,6 +2,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createHmac } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
+type ListingAvailableSlot = {
+  date: string
+  remaining?: number | null
+  total?: number | null
+}
+
 type ListingSyncBody = {
   action: 'upsert' | 'delete'
   tenant_id: string
@@ -13,6 +19,13 @@ type ListingSyncBody = {
   marketplace_slugs?: string[]
   price_from?: number | null
   price_currency?: string | null
+  market_booking_mode?: 'seats' | 'slots' | null
+  next_departure_date?: string | null
+  seats_total?: number | null
+  seats_left?: number | null
+  available_slots?: ListingAvailableSlot[]
+  booking_config_id?: string | null
+  availability_synced_at?: string | null
 }
 
 export async function POST(request: NextRequest) {
@@ -70,6 +83,27 @@ export async function POST(request: NextRequest) {
   }
   if (data.price_currency !== undefined) {
     row.price_currency = data.price_currency
+  }
+  if (data.market_booking_mode !== undefined) {
+    row.market_booking_mode = data.market_booking_mode
+  }
+  if (data.next_departure_date !== undefined) {
+    row.next_departure_date = data.next_departure_date
+  }
+  if (data.seats_total !== undefined) {
+    row.seats_total = data.seats_total
+  }
+  if (data.seats_left !== undefined) {
+    row.seats_left = data.seats_left
+  }
+  if (data.available_slots !== undefined) {
+    row.available_slots = data.available_slots
+  }
+  if (data.booking_config_id !== undefined) {
+    row.booking_config_id = data.booking_config_id
+  }
+  if (data.availability_synced_at !== undefined) {
+    row.availability_synced_at = data.availability_synced_at
   }
 
   const { error } = await supabase.schema('hub').from('listing_cache').upsert(row, {

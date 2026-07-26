@@ -1,3 +1,9 @@
+export type ListingAvailableSlot = {
+  date: string
+  remaining?: number | null
+  total?: number | null
+}
+
 export type ListingCacheRow = {
   id: string
   tenant_id: string
@@ -10,4 +16,11 @@ export type ListingCacheRow = {
   marketplace_slugs?: string[]
   price_from?: number | null
   price_currency?: string | null
+  market_booking_mode?: 'seats' | 'slots' | null
+  next_departure_date?: string | null
+  seats_total?: number | null
+  seats_left?: number | null
+  available_slots?: ListingAvailableSlot[]
+  booking_config_id?: string | null
+  availability_synced_at?: string | null
 }
