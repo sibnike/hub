@@ -23,7 +23,7 @@ function clampPct(n: unknown): number {
 export function normalizeMarketDiscountTiers(
   input: Partial<MarketDiscountTiers> | null | undefined
 ): MarketDiscountTiers {
-  let publicPct = clampPct(input?.public)
+  const publicPct = clampPct(input?.public)
   let silverPct = clampPct(input?.silver)
   let goldPct = clampPct(input?.gold)
 
