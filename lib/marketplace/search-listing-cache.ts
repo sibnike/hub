@@ -17,6 +17,12 @@ type SearchRpcRow = {
   rank: number | null
 }
 
+type ListingAvailableSlot = {
+  date: string
+  remaining?: number | null
+  total?: number | null
+}
+
 type ListingExtraRow = {
   id: string
   page_slug: string
@@ -29,6 +35,13 @@ type ListingExtraRow = {
   short_text?: Record<string, string> | null
   categories?: string[] | null
   synced_at?: string | null
+  market_booking_mode?: 'seats' | 'slots' | null
+  next_departure_date?: string | null
+  seats_total?: number | null
+  seats_left?: number | null
+  available_slots?: ListingAvailableSlot[] | null
+  booking_config_id?: string | null
+  availability_synced_at?: string | null
 }
 
 type CompanyExtraRow = {
@@ -50,8 +63,18 @@ function toListingRow(row: SearchRpcRow, extra?: ListingExtraRow): ListingCacheR
     price_from: typeof extra?.price_from === 'number' ? extra.price_from : null,
     price_currency: extra?.price_currency ?? null,
     synced_at: row.synced_at,
+    market_booking_mode: extra?.market_booking_mode ?? null,
+    next_departure_date: extra?.next_departure_date ?? null,
+    seats_total: typeof extra?.seats_total === 'number' ? extra.seats_total : null,
+    seats_left: typeof extra?.seats_left === 'number' ? extra.seats_left : null,
+    available_slots: Array.isArray(extra?.available_slots) ? extra.available_slots : [],
+    booking_config_id: extra?.booking_config_id ?? null,
+    availability_synced_at: extra?.availability_synced_at ?? null,
   }
 }
+
+const LISTING_SELECT =
+  'id, tenant_id, page_slug, title, short_text, categories, marketplace_themes, marketplace_slugs, price_from, price_currency, synced_at, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at'
 
 async function loadApprovedSellerTenantIds(
   marketplaceSlug: string
@@ -87,9 +110,7 @@ async function searchByMarketplaceChannel(
   const { data: listings, error } = await supabase
     .schema('hub')
     .from('listing_cache')
-    .select(
-      'id, tenant_id, page_slug, title, short_text, categories, marketplace_themes, marketplace_slugs, price_from, price_currency, synced_at'
-    )
+    .select(LISTING_SELECT)
     .contains('marketplace_slugs', [marketplaceSlug])
     .limit(Math.min(limit * 3, 150))
 
@@ -202,7 +223,9 @@ export async function searchListingCache(
     supabase
       .schema('hub')
       .from('listing_cache')
-      .select('id, tenant_id, marketplace_themes, marketplace_slugs, price_from, price_currency')
+      .select(
+        'id, tenant_id, marketplace_themes, marketplace_slugs, price_from, price_currency, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at'
+      )
       .in('id', listingIds),
   ])
 
