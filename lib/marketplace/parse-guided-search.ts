@@ -19,6 +19,7 @@ function emptyGuidedParams(): GuidedSearchParams {
       tags: [],
       country: null,
       city: null,
+      marketplace: null,
     },
   }
 }
