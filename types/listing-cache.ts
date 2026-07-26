@@ -7,6 +7,7 @@ export type ListingCacheRow = {
   categories: string[]
   synced_at: string | null
   marketplace_themes?: string[]
+  marketplace_slugs?: string[]
   price_from?: number | null
   price_currency?: string | null
 }

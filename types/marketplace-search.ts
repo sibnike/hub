@@ -7,6 +7,8 @@ export type MarketplaceSearchFilter = {
   tags: string[]
   country: string | null
   city: string | null
+  /** Channel slug e.g. tourhub — filters listing_cache.marketplace_slugs + approved sellers */
+  marketplace: string | null
 }
 
 export type MarketplaceTenantResult = CompanyCacheRow & {
