@@ -23,4 +23,9 @@ export type ListingCacheRow = {
   available_slots?: ListingAvailableSlot[]
   booking_config_id?: string | null
   availability_synced_at?: string | null
+  market_discount_tiers?: {
+    public: number
+    silver: number
+    gold: number
+  }
 }
