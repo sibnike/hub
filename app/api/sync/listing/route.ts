@@ -26,6 +26,7 @@ type ListingSyncBody = {
   available_slots?: ListingAvailableSlot[]
   booking_config_id?: string | null
   availability_synced_at?: string | null
+  market_discount_tiers?: { public?: number; silver?: number; gold?: number }
 }
 
 export async function POST(request: NextRequest) {
@@ -104,6 +105,9 @@ export async function POST(request: NextRequest) {
   }
   if (data.availability_synced_at !== undefined) {
     row.availability_synced_at = data.availability_synced_at
+  }
+  if (data.market_discount_tiers !== undefined) {
+    row.market_discount_tiers = data.market_discount_tiers
   }
 
   const { error } = await supabase.schema('hub').from('listing_cache').upsert(row, {
