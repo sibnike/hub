@@ -7,6 +7,7 @@ export function emptySearchFilter(): MarketplaceSearchFilter {
     tags: [],
     country: null,
     city: null,
+    marketplace: null,
   }
 }
 
@@ -40,7 +41,12 @@ export function normalizeSearchFilter(
   const city =
     typeof input?.city === 'string' && input.city.trim() ? input.city.trim() : null
 
-  return { keywords, categories, tags, country, city }
+  const marketplace =
+    typeof input?.marketplace === 'string' && input.marketplace.trim()
+      ? input.marketplace.trim()
+      : null
+
+  return { keywords, categories, tags, country, city, marketplace }
 }
 
 export function isFilterEmpty(filter: MarketplaceSearchFilter): boolean {
@@ -49,6 +55,7 @@ export function isFilterEmpty(filter: MarketplaceSearchFilter): boolean {
     filter.categories.length === 0 &&
     filter.tags.length === 0 &&
     !filter.country &&
-    !filter.city
+    !filter.city &&
+    !filter.marketplace
   )
 }

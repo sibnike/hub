@@ -19,9 +19,16 @@ type SearchRpcRow = {
 
 type ListingExtraRow = {
   id: string
+  page_slug: string
   marketplace_themes: string[] | null
+  marketplace_slugs: string[] | null
   price_from: number | null
   price_currency: string | null
+  tenant_id: string
+  title?: Record<string, string> | null
+  short_text?: Record<string, string> | null
+  categories?: string[] | null
+  synced_at?: string | null
 }
 
 type CompanyExtraRow = {
@@ -39,10 +46,102 @@ function toListingRow(row: SearchRpcRow, extra?: ListingExtraRow): ListingCacheR
     short_text: row.short_text && typeof row.short_text === 'object' ? row.short_text : {},
     categories: Array.isArray(row.categories) ? row.categories : [],
     marketplace_themes: Array.isArray(extra?.marketplace_themes) ? extra.marketplace_themes : [],
+    marketplace_slugs: Array.isArray(extra?.marketplace_slugs) ? extra.marketplace_slugs : [],
     price_from: typeof extra?.price_from === 'number' ? extra.price_from : null,
     price_currency: extra?.price_currency ?? null,
     synced_at: row.synced_at,
   }
+}
+
+async function loadApprovedSellerTenantIds(
+  marketplaceSlug: string
+): Promise<Set<string> | null> {
+  const supabase = createAdminClient()
+  const { data: market } = await supabase
+    .schema('hub')
+    .from('marketplaces')
+    .select('id')
+    .eq('slug', marketplaceSlug)
+    .maybeSingle()
+  if (!market) return new Set()
+
+  const { data: sellers } = await supabase
+    .schema('hub')
+    .from('marketplace_sellers')
+    .select('tenant_id')
+    .eq('marketplace_id', market.id)
+    .eq('status', 'approved')
+
+  return new Set((sellers ?? []).map((s) => String(s.tenant_id)))
+}
+
+/** Channel-scoped listing browse (TourHub): slugs + approved sellers. */
+async function searchByMarketplaceChannel(
+  marketplaceSlug: string,
+  limit: number
+): Promise<MarketplaceListingResult[]> {
+  const supabase = createAdminClient()
+  const approved = await loadApprovedSellerTenantIds(marketplaceSlug)
+  if (!approved || approved.size === 0) return []
+
+  const { data: listings, error } = await supabase
+    .schema('hub')
+    .from('listing_cache')
+    .select(
+      'id, tenant_id, page_slug, title, short_text, categories, marketplace_themes, marketplace_slugs, price_from, price_currency, synced_at'
+    )
+    .contains('marketplace_slugs', [marketplaceSlug])
+    .limit(Math.min(limit * 3, 150))
+
+  if (error) {
+    console.error('[searchByMarketplaceChannel]', error.message)
+    throw new Error(error.message)
+  }
+
+  const rows = ((listings ?? []) as ListingExtraRow[]).filter((l) =>
+    approved.has(String(l.tenant_id))
+  )
+  const sliced = rows.slice(0, limit)
+  if (!sliced.length) return []
+
+  const tenantIds = Array.from(new Set(sliced.map((r) => String(r.tenant_id))))
+  const [{ data: tenants }, { data: companies }] = await Promise.all([
+    supabase.from('tenants').select('id, name, slug').in('id', tenantIds),
+    supabase
+      .schema('hub')
+      .from('company_cache')
+      .select('tenant_id, logo_url, city')
+      .in('tenant_id', tenantIds),
+  ])
+
+  const tenantById = new Map(tenants?.map((t) => [String(t.id), t]) ?? [])
+  const companyByTenant = new Map(
+    (companies as CompanyExtraRow[] | null)?.map((c) => [String(c.tenant_id), c]) ?? []
+  )
+
+  return sliced.map((row, index) => {
+    const tenant = tenantById.get(String(row.tenant_id))
+    const company = companyByTenant.get(String(row.tenant_id))
+    const rpcLike: SearchRpcRow = {
+      id: String(row.id),
+      tenant_id: String(row.tenant_id),
+      page_slug: row.page_slug,
+      title: row.title ?? {},
+      short_text: row.short_text ?? {},
+      categories: row.categories ?? [],
+      synced_at: row.synced_at ?? null,
+      rank: 1 - index * 0.001,
+    }
+    return {
+      ...toListingRow(rpcLike, row),
+      result_type: 'listing' as const,
+      tenant_slug: tenant?.slug ?? null,
+      tenant_name: tenant?.name ?? null,
+      logo_url: company?.logo_url ?? null,
+      company_city: company?.city ?? null,
+      rank: typeof rpcLike.rank === 'number' ? rpcLike.rank : 0,
+    }
+  })
 }
 
 export async function searchListingCache(
@@ -50,6 +149,29 @@ export async function searchListingCache(
   limit = 20
 ): Promise<MarketplaceListingResult[]> {
   if (isFilterEmpty(filter)) return []
+
+  if (filter.marketplace) {
+    const channelResults = await searchByMarketplaceChannel(filter.marketplace, limit)
+    if (
+      !filter.keywords &&
+      filter.categories.length === 0 &&
+      filter.tags.length === 0 &&
+      !filter.country &&
+      !filter.city
+    ) {
+      return channelResults
+    }
+    // Intersect with theme/category filter when both present
+    if (filter.categories.length > 0) {
+      const catSet = new Set(filter.categories)
+      return channelResults.filter(
+        (r) =>
+          r.marketplace_themes.some((t) => catSet.has(t)) ||
+          r.categories.some((c) => catSet.has(c))
+      )
+    }
+    return channelResults
+  }
 
   const supabase = createAdminClient()
   const { data, error } = await supabase.schema('hub').rpc('search_listing_cache', {
@@ -80,7 +202,7 @@ export async function searchListingCache(
     supabase
       .schema('hub')
       .from('listing_cache')
-      .select('id, marketplace_themes, price_from, price_currency')
+      .select('id, tenant_id, marketplace_themes, marketplace_slugs, price_from, price_currency')
       .in('id', listingIds),
   ])
 

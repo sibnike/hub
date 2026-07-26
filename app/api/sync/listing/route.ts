@@ -10,6 +10,7 @@ type ListingSyncBody = {
   short_text?: Record<string, string>
   categories?: string[]
   marketplace_themes?: string[]
+  marketplace_slugs?: string[]
   price_from?: number | null
   price_currency?: string | null
 }
@@ -60,6 +61,9 @@ export async function POST(request: NextRequest) {
 
   if (data.marketplace_themes !== undefined) {
     row.marketplace_themes = data.marketplace_themes
+  }
+  if (data.marketplace_slugs !== undefined) {
+    row.marketplace_slugs = data.marketplace_slugs
   }
   if (data.price_from !== undefined) {
     row.price_from = data.price_from
