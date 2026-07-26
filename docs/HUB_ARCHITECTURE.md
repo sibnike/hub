@@ -11,6 +11,9 @@
 - Next.js 14 (App Router, TypeScript), Tailwind + shadcn/ui, Framer Motion, @dnd-kit, next-intl, recharts.
 - Supabase (PostgreSQL + RLS) — **тот же проект что у Vitrina**, схема `hub`.
   prod ref: `bfcfwaakxcqplamcswaq`.
+- **DB access из Vercel:** только HTTP через `supabase-js` (`lib/supabase/*`). Прямой
+  Postgres/`pg` Pool в Functions не используется; при появлении SQL — только Supavisor `:6543`.
+  См. `docs/YANBADA_ARCHITECTURE.md` §«Доступ к БД из Vercel Serverless».
 - Vercel (prod). Репозиторий github.com/sibnike/hub. Node 22.
 - Resend (рассылка приглашений, подтверждение email посетителя). Домен отправителя — `yanbada.com`.
 
