@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { HEAVY_API_MAX_DURATION_SEC } from '@/lib/vercel/heavy-api-duration'
 import { createClient } from '@/lib/supabase/server'
+
+export const maxDuration = HEAVY_API_MAX_DURATION_SEC
 import { assertTenantAdminOrPlatform } from '@/lib/auth/current-tenant'
 import { generateAccessCode, hashAccessCode } from '@/lib/access-code'
 import { sendInvitation } from '@/lib/email/send-invitation'

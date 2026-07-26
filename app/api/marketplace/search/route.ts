@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { HEAVY_API_MAX_DURATION_SEC } from '@/lib/vercel/heavy-api-duration'
 import { parseMarketplaceQuery } from '@/lib/marketplace/parse-marketplace-query'
+
+export const maxDuration = HEAVY_API_MAX_DURATION_SEC
 import {
   isFilterEmpty,
   normalizeSearchFilter,

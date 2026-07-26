@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { HEAVY_API_MAX_DURATION_SEC } from '@/lib/vercel/heavy-api-duration'
 import { createMarketplaceRequest } from '@/lib/marketplace/create-marketplace-request'
+
+export const maxDuration = HEAVY_API_MAX_DURATION_SEC
 import { normalizeRequestParsed } from '@/lib/marketplace/normalize-request-parsed'
 import { checkRateLimit } from '@/lib/rate-limit'
 import type { MarketplaceRequestParsed } from '@/types/marketplace-request'

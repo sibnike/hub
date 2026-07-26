@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { HEAVY_API_MAX_DURATION_SEC } from '@/lib/vercel/heavy-api-duration'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const maxDuration = HEAVY_API_MAX_DURATION_SEC
 import { dispatchMarketplaceBookings } from '@/lib/marketplace/dispatch-marketplace-bookings'
 import { requireApprovedMarketplaceAccess } from '@/lib/marketplace/require-approved-access'
 import { checkRateLimit } from '@/lib/rate-limit'

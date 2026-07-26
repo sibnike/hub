@@ -315,3 +315,7 @@ M1/M2/M3a подтверждены реальным сквозным прого�
 - Тепловая карта при большом количестве событий (10к+) тяжёлая — рассмотреть агрегацию на бэке через ежедневный cron
 - Embed-виджет (`hub-widget.js`) минифицирован вручную — настроить build pipeline
 - E2E тесты — Playwright для основных потоков (регистрация посетителя, добавление в избранное, ответ на опрос)
+- ~~Serverless `maxDuration` для AI match / events heavy routes~~ — **done (2026-07-26)**: 60s на ключевых marketplace + participants routes
+- **P2: Job queue для marketplace dispatch** (QStash / Inngest / Trigger.dev) — после insert request вернуть `request_id`, доставку в Vitrina гонять async + retry/DLQ. Сейчас sync + throttle хватает; вводить при Vercel FUNCTION_INVOCATION_TIMEOUT или росте targets
+- **P2: Availability concurrency** — сейчас sequential N× HTTP к Vitrina; пул 3–5 + cache per `(tenant, date)` в рамках запроса
+- **P2: Participants import** — chunked email / после HTTP response (большие CSV)

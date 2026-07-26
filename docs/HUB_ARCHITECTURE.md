@@ -14,6 +14,25 @@
 - Vercel (prod). Репозиторий github.com/sibnike/hub. Node 22.
 - Resend (рассылка приглашений, подтверждение email посетителя). Домен отправителя — `yanbada.com`.
 
+### Serverless limits (AI match / Events)
+
+Marketplace AI + dispatch и тяжёлые Events-роуты работают **синхронно** в одном
+Vercel Function invocation. Очередей (QStash / Inngest / Trigger) пока нет.
+
+| Слой | Статус |
+|------|--------|
+| `export const maxDuration = 60` на heavy routes | ✅ с 2026-07-26 (`lib/vercel/heavy-api-duration.ts`) |
+| Ingest throttle + 429 retry к Vitrina | ✅ уже есть |
+| Caps (targets ≤20, book ≤10, results ≤50) | ✅ уже есть |
+| Async dispatch / job queue | **P2 backlog** — когда появятся timeout’ы в Vercel logs или вырастет multi-target volume |
+| Participants CSV → email после ответа | **P2 backlog** |
+
+Heavy routes: `/api/marketplace/request`, `/api/marketplace/search*`,
+`/api/marketplace/[slug]/search/{parse,results,request,book}`,
+`/api/organizer/events/[slug]/participants`.
+
+Требуется **Vercel Pro** (Hobby hard-cap 10s; `maxDuration=60` иначе не действует).
+
 ### Домены (prod)
 
 - Кабинет организатора и компании: `hub.yanbada.com` → `/organizer/*`, `/exhibitor/*`
