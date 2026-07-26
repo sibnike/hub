@@ -126,6 +126,7 @@ ${categoryList}
           tags: Array.isArray(parsed.tags) ? parsed.tags : [],
           country: typeof parsed.country === 'string' ? parsed.country : null,
           city: typeof parsed.city === 'string' ? parsed.city : null,
+          marketplace: null,
         },
       },
       validSlugs,
@@ -134,7 +135,14 @@ ${categoryList}
   } catch {
     return mergeParams(
       {
-        search: { keywords: trimmed, categories: [], tags: [], country: null, city: null },
+        search: {
+          keywords: trimmed,
+          categories: [],
+          tags: [],
+          country: null,
+          city: null,
+          marketplace: null,
+        },
       },
       validSlugs,
       input.knownCity ?? null

@@ -64,6 +64,7 @@ ${categoryList}
           tags: Array.isArray(parsed.tags) ? parsed.tags : [],
           country: typeof parsed.country === 'string' ? parsed.country : null,
           city: typeof parsed.city === 'string' ? parsed.city : null,
+          marketplace: null,
         },
         requested_date:
           typeof parsed.requested_date === 'string' ? parsed.requested_date : null,
