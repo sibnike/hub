@@ -1,3 +1,8 @@
+/**
+ * Serverless DB access = HTTP (PostgREST), not TCP Postgres.
+ * Do not add pg/DATABASE_URL. Direct SQL later → Supavisor transaction :6543 only.
+ * See: docs/YANBADA_ARCHITECTURE.md §«Доступ к БД из Vercel Serverless»
+ */
 import { createClient } from '@supabase/supabase-js'
 
 export function createAdminClient() {
