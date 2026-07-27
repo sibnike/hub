@@ -39,4 +39,7 @@ export type ListingCacheRow = {
     silver: number
     gold: number
   }
+  service_country_code?: string | null
+  service_scope?: 'country' | 'cities' | null
+  service_city_codes?: string[]
 }
