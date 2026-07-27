@@ -19,6 +19,8 @@ type ListingSyncBody = {
   marketplace_slugs?: string[]
   price_from?: number | null
   price_currency?: string | null
+  cover_image_url?: string | null
+  images?: string[]
   market_booking_mode?: 'seats' | 'slots' | null
   next_departure_date?: string | null
   seats_total?: number | null
@@ -84,6 +86,12 @@ export async function POST(request: NextRequest) {
   }
   if (data.price_currency !== undefined) {
     row.price_currency = data.price_currency
+  }
+  if (data.cover_image_url !== undefined) {
+    row.cover_image_url = data.cover_image_url
+  }
+  if (data.images !== undefined) {
+    row.images = Array.isArray(data.images) ? data.images : []
   }
   if (data.market_booking_mode !== undefined) {
     row.market_booking_mode = data.market_booking_mode

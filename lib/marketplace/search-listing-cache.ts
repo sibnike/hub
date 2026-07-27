@@ -30,6 +30,8 @@ type ListingExtraRow = {
   marketplace_slugs: string[] | null
   price_from: number | null
   price_currency: string | null
+  cover_image_url?: string | null
+  images?: string[] | null
   tenant_id: string
   title?: Record<string, string> | null
   short_text?: Record<string, string> | null
@@ -67,6 +69,13 @@ function toListingRow(row: SearchRpcRow, extra?: ListingExtraRow): ListingCacheR
     marketplace_slugs: Array.isArray(extra?.marketplace_slugs) ? extra.marketplace_slugs : [],
     price_from: typeof extra?.price_from === 'number' ? extra.price_from : null,
     price_currency: extra?.price_currency ?? null,
+    cover_image_url:
+      typeof extra?.cover_image_url === 'string' && extra.cover_image_url.trim()
+        ? extra.cover_image_url.trim()
+        : null,
+    images: Array.isArray(extra?.images)
+      ? extra.images.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+      : [],
     synced_at: row.synced_at,
     market_booking_mode: extra?.market_booking_mode ?? null,
     next_departure_date: extra?.next_departure_date ?? null,
@@ -87,7 +96,7 @@ function toListingRow(row: SearchRpcRow, extra?: ListingExtraRow): ListingCacheR
 }
 
 const LISTING_SELECT =
-  'id, tenant_id, page_slug, title, short_text, categories, marketplace_themes, marketplace_slugs, price_from, price_currency, synced_at, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at, market_discount_tiers'
+  'id, tenant_id, page_slug, title, short_text, categories, marketplace_themes, marketplace_slugs, price_from, price_currency, cover_image_url, images, synced_at, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at, market_discount_tiers'
 
 async function loadApprovedSellerTenantIds(
   marketplaceSlug: string
@@ -237,7 +246,7 @@ export async function searchListingCache(
       .schema('hub')
       .from('listing_cache')
       .select(
-        'id, tenant_id, marketplace_themes, marketplace_slugs, price_from, price_currency, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at, market_discount_tiers'
+        'id, tenant_id, marketplace_themes, marketplace_slugs, price_from, price_currency, cover_image_url, images, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at, market_discount_tiers'
       )
       .in('id', listingIds),
   ])

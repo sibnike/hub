@@ -16,6 +16,8 @@ export type ListingCacheRow = {
   marketplace_slugs?: string[]
   price_from?: number | null
   price_currency?: string | null
+  cover_image_url?: string | null
+  images?: string[]
   market_booking_mode?: 'seats' | 'slots' | null
   next_departure_date?: string | null
   seats_total?: number | null
