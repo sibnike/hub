@@ -50,6 +50,9 @@ type ListingExtraRow = {
     silver: number
     gold: number
   } | null
+  service_country_code?: string | null
+  service_scope?: 'country' | 'cities' | null
+  service_city_codes?: string[] | null
 }
 
 type CompanyExtraRow = {
@@ -101,7 +104,7 @@ function toListingRow(row: SearchRpcRow, extra?: ListingExtraRow): ListingCacheR
 }
 
 const LISTING_SELECT =
-  'id, tenant_id, page_slug, title, short_text, categories, marketplace_themes, marketplace_slugs, price_from, price_currency, calculator_pricing, cover_image_url, images, synced_at, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at, market_discount_tiers'
+  'id, tenant_id, page_slug, title, short_text, categories, marketplace_themes, marketplace_slugs, price_from, price_currency, calculator_pricing, cover_image_url, images, synced_at, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at, market_discount_tiers, service_country_code, service_scope, service_city_codes'
 
 async function loadApprovedSellerTenantIds(
   marketplaceSlug: string
@@ -187,6 +190,9 @@ async function searchByMarketplaceChannel(
       tenant_name: tenant?.name ?? null,
       logo_url: company?.logo_url ?? null,
       company_city: company?.city ?? null,
+      service_country_code: row.service_country_code ?? null,
+      service_scope: row.service_scope ?? null,
+      service_city_codes: Array.isArray(row.service_city_codes) ? row.service_city_codes : [],
       rank: typeof rpcLike.rank === 'number' ? rpcLike.rank : 0,
     }
   })
@@ -251,7 +257,7 @@ export async function searchListingCache(
       .schema('hub')
       .from('listing_cache')
       .select(
-        'id, tenant_id, marketplace_themes, marketplace_slugs, price_from, price_currency, calculator_pricing, cover_image_url, images, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at, market_discount_tiers'
+        'id, tenant_id, marketplace_themes, marketplace_slugs, price_from, price_currency, calculator_pricing, cover_image_url, images, market_booking_mode, next_departure_date, seats_total, seats_left, available_slots, booking_config_id, availability_synced_at, market_discount_tiers, service_country_code, service_scope, service_city_codes'
       )
       .in('id', listingIds),
   ])
@@ -275,6 +281,9 @@ export async function searchListingCache(
       tenant_name: tenant?.name ?? null,
       logo_url: company?.logo_url ?? null,
       company_city: company?.city ?? null,
+      service_country_code: extra?.service_country_code ?? null,
+      service_scope: extra?.service_scope ?? null,
+      service_city_codes: Array.isArray(extra?.service_city_codes) ? extra.service_city_codes : [],
       rank: typeof row.rank === 'number' ? row.rank : 0,
     }
   })

@@ -38,6 +38,9 @@ type ListingSyncBody = {
   booking_config_id?: string | null
   availability_synced_at?: string | null
   market_discount_tiers?: { public?: number; silver?: number; gold?: number }
+  service_country_code?: string | null
+  service_scope?: 'country' | 'cities' | null
+  service_city_codes?: string[]
 }
 
 export async function POST(request: NextRequest) {
@@ -128,6 +131,15 @@ export async function POST(request: NextRequest) {
   }
   if (data.market_discount_tiers !== undefined) {
     row.market_discount_tiers = data.market_discount_tiers
+  }
+  if (data.service_country_code !== undefined) {
+    row.service_country_code = data.service_country_code
+  }
+  if (data.service_scope !== undefined) {
+    row.service_scope = data.service_scope
+  }
+  if (data.service_city_codes !== undefined) {
+    row.service_city_codes = Array.isArray(data.service_city_codes) ? data.service_city_codes : []
   }
 
   const { error } = await supabase.schema('hub').from('listing_cache').upsert(row, {
