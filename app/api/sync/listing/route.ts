@@ -19,6 +19,15 @@ type ListingSyncBody = {
   marketplace_slugs?: string[]
   price_from?: number | null
   price_currency?: string | null
+  calculator_pricing?: {
+    mode: 'group_price' | 'discount_price'
+    currency: string
+    min_people: number
+    max_people: number
+    tiers?: { people: number; total_price: number }[]
+    base_price_per_person?: number
+    discount_tiers?: { people: number; discount_percent: number }[]
+  } | null
   cover_image_url?: string | null
   images?: string[]
   market_booking_mode?: 'seats' | 'slots' | null
@@ -86,6 +95,9 @@ export async function POST(request: NextRequest) {
   }
   if (data.price_currency !== undefined) {
     row.price_currency = data.price_currency
+  }
+  if (data.calculator_pricing !== undefined) {
+    row.calculator_pricing = data.calculator_pricing
   }
   if (data.cover_image_url !== undefined) {
     row.cover_image_url = data.cover_image_url
